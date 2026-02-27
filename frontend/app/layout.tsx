@@ -3,38 +3,47 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import Providers from "./providers";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
   title: "OSHA Vision Auditor",
   description: "AI-powered worksite safety compliance inspection",
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="dark">
-      <body className={inter.className}>
+    <html lang="en">
+      <body className={`${inter.variable} font-sans`}>
         <Providers>
-          <header className="border-b border-gray-800 bg-gray-950 sticky top-0 z-50">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center gap-3">
-              <div className="w-8 h-8 bg-yellow-500 rounded-lg flex items-center justify-center text-gray-950 font-black text-sm">
-                O
+          {/* Navbar */}
+          <header className="glass sticky top-0 z-50 border-b border-white/5">
+            <div className="max-w-7xl mx-auto px-5 sm:px-8 h-14 flex items-center justify-between">
+              {/* Logo */}
+              <div className="flex items-center gap-3">
+                <div className="w-7 h-7 rounded-lg bg-amber-500 flex items-center justify-center shrink-0"
+                     style={{ boxShadow: "0 0 12px rgba(245,158,11,0.4)" }}>
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                    <path d="M7 1L13 4.5V9.5L7 13L1 9.5V4.5L7 1Z" fill="#07070f" strokeWidth="0"/>
+                    <circle cx="7" cy="7" r="2" fill="#07070f"/>
+                  </svg>
+                </div>
+                <div className="leading-none">
+                  <span className="text-sm font-bold text-white tracking-tight">OSHA Vision</span>
+                  <span className="text-xs text-gray-600 block mt-0.5">Safety Auditor</span>
+                </div>
               </div>
-              <div>
-                <h1 className="text-base font-bold text-white leading-none">
-                  OSHA Vision Auditor
-                </h1>
-                <p className="text-xs text-gray-500 leading-none mt-0.5">
-                  AI Safety Compliance Inspector
-                </p>
+
+              {/* Right side pill */}
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-white/5 bg-white/3">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="text-xs text-gray-500 font-medium">AI Active</span>
               </div>
             </div>
           </header>
-          <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8">{children}</main>
+
+          <main className="max-w-7xl mx-auto px-5 sm:px-8 py-10">
+            {children}
+          </main>
         </Providers>
       </body>
     </html>
