@@ -103,8 +103,25 @@ def _default_report(violations: List[Dict[str, Any]], risk_score: float) -> str:
     vest_count = sum(1 for v in violations if v["violation_type"] == "vest_violation")
     severity = _severity_label(risk_score)
 
+    if len(violations) == 0:
+        return f"""1. OVERALL RISK ASSESSMENT
+This worksite inspection recorded a risk score of {risk_score}/100, classified as {severity}. No PPE violations were detected, indicating full compliance with OSHA PPE requirements during the inspected period.
+
+2. TOP SAFETY ISSUES
+• No Hard Hat Violations detected — all workers observed were wearing proper head protection per OSHA 29 CFR 1926.100.
+• No Safety Vest Violations detected — all workers observed were wearing high-visibility vests per OSHA 29 CFR 1926.65.
+• No systemic PPE non-compliance identified during this inspection period.
+
+3. RECOMMENDED ACTIONS
+• Continue enforcing mandatory PPE policies at all site entry points.
+• Conduct periodic unannounced inspections to maintain compliance standards.
+• Document this inspection result as part of your ongoing OSHA safety records.
+• Schedule routine OSHA safety refresher training to sustain the compliance culture.
+• Review and update the written PPE program per OSHA 29 CFR 1910.132 annually."""
+
+    compliance_label = 'significant' if risk_score >= 50 else 'moderate'
     return f"""1. OVERALL RISK ASSESSMENT
-This worksite inspection recorded a risk score of {risk_score}/100, classified as {severity}. A total of {len(violations)} violations were detected, indicating {'significant' if risk_score >= 50 else 'moderate'} non-compliance with OSHA PPE requirements.
+This worksite inspection recorded a risk score of {risk_score}/100, classified as {severity}. A total of {len(violations)} violations were detected, indicating {compliance_label} non-compliance with OSHA PPE requirements.
 
 2. TOP SAFETY ISSUES
 • Hard Hat Violations: {helmet_count} instances of workers observed without proper head protection, violating OSHA 29 CFR 1926.100.
