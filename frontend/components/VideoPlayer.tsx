@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  forwardRef,
-  useImperativeHandle,
-  useRef,
-  useState,
-} from "react";
+import { forwardRef, useImperativeHandle, useRef, useState } from "react";
 import ReactPlayer from "react-player";
 
 export interface VideoPlayerHandle {
@@ -24,17 +19,26 @@ const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
 
     useImperativeHandle(ref, () => ({
       seekTo(seconds: number) {
-        if (playerRef.current) {
-          playerRef.current.seekTo(seconds, "seconds");
-        }
+        playerRef.current?.seekTo(seconds, "seconds");
       },
     }));
 
     return (
-      <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden">
+      <div className="relative w-full aspect-video rounded-2xl overflow-hidden"
+           style={{ background: "#07070f", border: "1px solid #1e1e30" }}>
         {!ready && (
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-900">
-            <div className="text-gray-600 text-sm">Loading player...</div>
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3"
+               style={{ background: "#0f0f1a" }}>
+            <div className="relative w-10 h-10">
+              <svg className="absolute inset-0 w-full h-full animate-spin"
+                   style={{ animationDuration: "1.2s" }}
+                   viewBox="0 0 40 40">
+                <circle cx="20" cy="20" r="16" fill="none" stroke="#1e1e30" strokeWidth="3"/>
+                <circle cx="20" cy="20" r="16" fill="none" stroke="#f59e0b" strokeWidth="3"
+                        strokeLinecap="round" strokeDasharray="25 75"/>
+              </svg>
+            </div>
+            <p className="text-gray-600 text-xs">Loading player...</p>
           </div>
         )}
         <ReactPlayer
@@ -47,9 +51,7 @@ const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
           onDuration={onDuration}
           config={{
             file: {
-              attributes: {
-                crossOrigin: "anonymous",
-              },
+              attributes: { crossOrigin: "anonymous" },
             },
           }}
         />
