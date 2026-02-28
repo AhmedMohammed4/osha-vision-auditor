@@ -4,13 +4,13 @@
 
 @layer base {
   :root {
-    --bg-base: #07070f;
-    --bg-card: #0f0f1a;
-    --bg-card-hover: #141425;
-    --border: #1e1e30;
-    --border-bright: #2a2a40;
-    --accent: #f59e0b;
-    --accent-dim: rgba(245, 158, 11, 0.12);
+    --bg-base: #090909;
+    --bg-card: #0e0e0e;
+    --bg-card-hover: #131313;
+    --border: #251212;
+    --border-bright: #3a1a1a;
+    --accent: #dc2626;
+    --accent-dim: rgba(220, 38, 38, 0.10);
   }
 
   * {
@@ -24,7 +24,7 @@
   body {
     @apply antialiased;
     background-color: var(--bg-base);
-    color: #e2e2f0;
+    color: #e0e0e0;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 
@@ -36,11 +36,11 @@
     background: var(--bg-base);
   }
   ::-webkit-scrollbar-thumb {
-    background: #2a2a40;
+    background: #2a1212;
     border-radius: 3px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: #3a3a55;
+    background: #3d1818;
   }
 }
 
@@ -65,7 +65,7 @@
   }
 
   .glass {
-    background: rgba(15, 15, 26, 0.8);
+    background: rgba(9, 9, 9, 0.85);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border: 1px solid var(--border);
@@ -76,13 +76,13 @@
            px-5 py-2.5 rounded-xl transition-all duration-150
            disabled:opacity-40 disabled:cursor-not-allowed;
     background-color: var(--accent);
-    color: #07070f;
-    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+    color: #ffffff;
+    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0);
   }
 
   .btn-primary:not(:disabled):hover {
-    background-color: #fbbf24;
-    box-shadow: 0 0 20px rgba(245, 158, 11, 0.25);
+    background-color: #b91c1c;
+    box-shadow: 0 0 20px rgba(220, 38, 38, 0.28);
   }
 
   .btn-ghost {
@@ -112,11 +112,11 @@
 
   .section-label {
     @apply text-xs font-semibold tracking-widest uppercase;
-    color: #4a4a6a;
+    color: #525252;
   }
 
-  .glow-amber {
-    box-shadow: 0 0 30px rgba(245, 158, 11, 0.15);
+  .glow-red {
+    box-shadow: 0 0 28px rgba(220, 38, 38, 0.12);
   }
 }
 
@@ -147,7 +147,7 @@
 /* Grid accent lines */
 .grid-bg {
   background-image:
-    linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+    linear-gradient(rgba(220,38,38,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(220,38,38,0.025) 1px, transparent 1px);
   background-size: 40px 40px;
 }

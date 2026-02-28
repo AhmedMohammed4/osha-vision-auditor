@@ -71,8 +71,8 @@ const STEPS = [
     desc: "Drop in any construction video — MP4, MOV, AVI, WebM. Up to 100 MB. No special format needed.",
     icon: (
       <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
-        <rect x="2" y="3" width="18" height="16" rx="3" stroke="#f59e0b" strokeWidth="1.4"/>
-        <path d="M11 7V14M11 7L8 10M11 7L14 10" stroke="#f59e0b" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+        <rect x="2" y="3" width="18" height="16" rx="3" stroke="#dc2626" strokeWidth="1.4"/>
+        <path d="M11 7V14M11 7L8 10M11 7L14 10" stroke="#dc2626" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
       </svg>
     ),
   },
@@ -82,9 +82,9 @@ const STEPS = [
     desc: "Claude AI Vision inspects each frame against all OSHA 29 CFR 1926 categories — PPE, fall protection, scaffolding, electrical, and more.",
     icon: (
       <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
-        <circle cx="11" cy="11" r="8.5" stroke="#f59e0b" strokeWidth="1.4"/>
-        <path d="M8 11L10 13L14 9" stroke="#f59e0b" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
-        <path d="M11 2V4M11 18V20M2 11H4M18 11H20" stroke="#f59e0b" strokeWidth="1.2" strokeLinecap="round" opacity="0.4"/>
+        <circle cx="11" cy="11" r="8.5" stroke="#dc2626" strokeWidth="1.4"/>
+        <path d="M8 11L10 13L14 9" stroke="#dc2626" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+        <path d="M11 2V4M11 18V20M2 11H4M18 11H20" stroke="#dc2626" strokeWidth="1.2" strokeLinecap="round" opacity="0.4"/>
       </svg>
     ),
   },
@@ -94,8 +94,8 @@ const STEPS = [
     desc: "A 0–100 risk score, a timestamped violation log you can click to jump to in the video, and an OSHA-aligned summary.",
     icon: (
       <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
-        <rect x="3" y="2" width="16" height="18" rx="2.5" stroke="#f59e0b" strokeWidth="1.4"/>
-        <path d="M7 8H15M7 11H15M7 14H11" stroke="#f59e0b" strokeWidth="1.4" strokeLinecap="round"/>
+        <rect x="3" y="2" width="16" height="18" rx="2.5" stroke="#dc2626" strokeWidth="1.4"/>
+        <path d="M7 8H15M7 11H15M7 14H11" stroke="#dc2626" strokeWidth="1.4" strokeLinecap="round"/>
       </svg>
     ),
   },
@@ -104,26 +104,26 @@ const STEPS = [
 /* ─── What it catches ─────────────────────────────────────────── */
 const CATCHES = [
   {
-    title: "Missing hard hats",
-    desc: "Head region analyzed for helmet colors — yellow, white, orange, red, blue.",
+    title: "PPE violations",
+    desc: "Hard hats, safety vests, eye protection, gloves, and proper footwear — flagged by Claude AI against all OSHA 29 CFR 1926 PPE standards.",
     badge: "badge-helmet",
-    badgeText: "Helmet",
+    badgeText: "High",
   },
   {
-    title: "Missing safety vests",
-    desc: "Torso region checked for hi-viz yellow-green and orange patterns.",
+    title: "Fall & height hazards",
+    desc: "Unprotected edges, missing harnesses, unsafe ladder angles, scaffold guardrail violations — the leading cause of construction fatalities.",
     badge: "badge-vest",
-    badgeText: "Vest",
+    badgeText: "Critical",
   },
   {
     title: "Weighted risk score",
-    desc: "Helmet violations score higher (5pts) than vest (3pts). Normalized per video length.",
+    desc: "14+ violation types weighted by severity. Fall hazards score highest. Normalized per video length for fair comparison across sites.",
     badge: null,
     badgeText: "Score",
   },
   {
-    title: "OSHA-aligned report",
-    desc: "GPT-4o turns raw violation data into a structured safety brief with corrective actions.",
+    title: "OSHA safety report",
+    desc: "Claude AI turns raw violation data into a structured OSHA-aligned brief with corrective actions and regulation citations.",
     badge: null,
     badgeText: "Report",
   },
@@ -165,7 +165,6 @@ export default function LandingPage() {
   const [statsVisible, setStatsVisible] = useState(false);
   const statsRef = useRef<HTMLDivElement>(null);
 
-  // Observe stats section
   useEffect(() => {
     const el = statsRef.current;
     if (!el) return;
@@ -186,22 +185,22 @@ export default function LandingPage() {
         {/* Ambient glow */}
         <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px]
                         pointer-events-none rounded-full"
-             style={{ background: "radial-gradient(ellipse, rgba(245,158,11,0.06) 0%, transparent 70%)" }} />
+             style={{ background: "radial-gradient(ellipse, rgba(220,38,38,0.07) 0%, transparent 70%)" }} />
 
         <div className="relative max-w-3xl mx-auto animate-fade-in-up space-y-6">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border"
-               style={{ borderColor: "rgba(245,158,11,0.2)", background: "rgba(245,158,11,0.05)" }}>
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-            <span className="text-xs font-semibold text-amber-400 tracking-wide">
+               style={{ borderColor: "rgba(220,38,38,0.28)", background: "rgba(220,38,38,0.06)" }}>
+            <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: "#dc2626" }} />
+            <span className="text-xs font-semibold tracking-wide" style={{ color: "#f87171" }}>
               Open source · Built in 72h · Claude AI Vision
             </span>
           </div>
 
           <h1 className="text-5xl sm:text-6xl font-bold tracking-tight leading-[1.08]"
-              style={{ color: "#f1f1f8" }}>
+              style={{ color: "#f1f1f1" }}>
             Construction sites kill<br />
             more workers than<br />
-            <span style={{ color: "#f59e0b" }}>you probably think.</span>
+            <span style={{ color: "#dc2626" }}>you probably think.</span>
           </h1>
 
           <p className="text-gray-400 text-lg leading-relaxed max-w-xl mx-auto">
@@ -226,7 +225,7 @@ export default function LandingPage() {
 
         {/* Scroll hint */}
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 opacity-30">
-          <div className="w-px h-8 bg-white/30" style={{
+          <div className="w-px h-8" style={{
             background: "linear-gradient(to bottom, transparent, rgba(255,255,255,0.3))"
           }} />
         </div>
@@ -235,7 +234,7 @@ export default function LandingPage() {
       {/* ── STATS ──────────────────────────────────────────────── */}
       <section ref={statsRef}
                className="py-16 px-5 sm:px-8"
-               style={{ borderTop: "1px solid #1e1e30", borderBottom: "1px solid #1e1e30", background: "#0a0a14" }}>
+               style={{ borderTop: "1px solid #251212", borderBottom: "1px solid #251212", background: "#0b0b0b" }}>
         <div className="max-w-5xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-10">
           {STATS.map((s) => (
             <StatItem key={s.label} {...s} active={statsVisible} />
@@ -259,7 +258,7 @@ export default function LandingPage() {
                 onClick={() => setActiveTab(i)}
                 className="px-4 py-2 rounded-xl text-sm font-medium transition-all duration-150"
                 style={activeTab === i
-                  ? { background: "#1e1e30", color: "#ffffff", border: "1px solid #2a2a40" }
+                  ? { background: "#1a0a0a", color: "#ffffff", border: "1px solid #3a1818" }
                   : { background: "transparent", color: "#4b5563", border: "1px solid transparent" }
                 }
               >
@@ -271,7 +270,7 @@ export default function LandingPage() {
           {/* Content */}
           <div key={activeTab}
                className="animate-scale-in rounded-2xl p-7"
-               style={{ background: "#0f0f1a", border: "1px solid #1e1e30" }}>
+               style={{ background: "#0e0e0e", border: "1px solid #251212" }}>
             <h3 className="text-white font-semibold text-lg mb-4 leading-snug">
               {STORY_TABS[activeTab].content.heading}
             </h3>
@@ -288,7 +287,7 @@ export default function LandingPage() {
 
       {/* ── HOW IT WORKS ───────────────────────────────────────── */}
       <section className="py-20 px-5 sm:px-8"
-               style={{ background: "#0a0a14", borderTop: "1px solid #1e1e30" }}>
+               style={{ background: "#0b0b0b", borderTop: "1px solid #251212" }}>
         <div className="max-w-5xl mx-auto">
           <p className="section-label mb-3">How it works</p>
           <h2 className="text-3xl font-bold text-white mb-12" style={{ maxWidth: "400px" }}>
@@ -298,19 +297,18 @@ export default function LandingPage() {
           <div className="grid md:grid-cols-3 gap-6">
             {STEPS.map((step, i) => (
               <div key={step.n} className="relative">
-                {/* Connector line */}
                 {i < STEPS.length - 1 && (
                   <div className="hidden md:block absolute top-6 left-full w-6 h-px z-10"
-                       style={{ background: "linear-gradient(to right, #2a2a40, transparent)" }} />
+                       style={{ background: "linear-gradient(to right, #3a1818, transparent)" }} />
                 )}
                 <div className="card-hover p-5 rounded-2xl h-full">
                   <div className="flex items-start gap-4 mb-4">
                     <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                         style={{ background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.15)" }}>
+                         style={{ background: "rgba(220,38,38,0.08)", border: "1px solid rgba(220,38,38,0.16)" }}>
                       {step.icon}
                     </div>
                     <span className="text-5xl font-bold tabular-nums mt-1"
-                          style={{ color: "#1e1e30", lineHeight: 1 }}>
+                          style={{ color: "#251212", lineHeight: 1 }}>
                       {step.n}
                     </span>
                   </div>
@@ -328,7 +326,7 @@ export default function LandingPage() {
         <div className="max-w-5xl mx-auto">
           <p className="section-label mb-3">What it detects</p>
           <h2 className="text-3xl font-bold text-white mb-12" style={{ maxWidth: "420px" }}>
-            Two violation types. One risk score. One report.
+            14+ violation types. One risk score. One report.
           </h2>
 
           <div className="grid sm:grid-cols-2 gap-4">
@@ -336,10 +334,10 @@ export default function LandingPage() {
               <div key={c.title}
                    className="card-hover p-5 rounded-2xl flex gap-4">
                 <div className="w-9 h-9 rounded-xl shrink-0 flex items-center justify-center"
-                     style={{ background: "rgba(245,158,11,0.07)", border: "1px solid rgba(245,158,11,0.12)" }}>
+                     style={{ background: "rgba(220,38,38,0.07)", border: "1px solid rgba(220,38,38,0.13)" }}>
                   <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                    <path d="M8 1L14 4.5V11.5L8 15L2 11.5V4.5L8 1Z" stroke="#f59e0b" strokeWidth="1.2" strokeLinejoin="round"/>
-                    <path d="M5.5 8L7 9.5L10.5 6" stroke="#f59e0b" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M8 1L14 4.5V11.5L8 15L2 11.5V4.5L8 1Z" stroke="#dc2626" strokeWidth="1.2" strokeLinejoin="round"/>
+                    <path d="M5.5 8L7 9.5L10.5 6" stroke="#dc2626" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                 </div>
                 <div className="min-w-0">
@@ -359,9 +357,9 @@ export default function LandingPage() {
 
       {/* ── CTA ────────────────────────────────────────────────── */}
       <section className="py-28 px-5 sm:px-8 text-center relative overflow-hidden"
-               style={{ background: "#0a0a14", borderTop: "1px solid #1e1e30" }}>
+               style={{ background: "#0b0b0b", borderTop: "1px solid #251212" }}>
         <div className="absolute inset-0 pointer-events-none"
-             style={{ background: "radial-gradient(ellipse at center, rgba(245,158,11,0.05) 0%, transparent 60%)" }} />
+             style={{ background: "radial-gradient(ellipse at center, rgba(220,38,38,0.06) 0%, transparent 60%)" }} />
         <div className="relative max-w-xl mx-auto space-y-6">
           <h2 className="text-4xl font-bold text-white leading-tight">
             If you manage a worksite,<br />run your first audit.

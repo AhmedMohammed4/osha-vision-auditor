@@ -19,9 +19,8 @@ export default function AuthPage() {
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [confirmed, setConfirmed] = useState(false); // "check your email" state
+  const [confirmed, setConfirmed] = useState(false);
 
-  // Redirect if already logged in
   useEffect(() => {
     if (!loading && user) router.replace("/upload");
   }, [user, loading, router]);
@@ -66,18 +65,18 @@ export default function AuthPage() {
 
       {/* Left panel — brand / story */}
       <div className="hidden lg:flex flex-col justify-between p-10 relative overflow-hidden"
-           style={{ background: "#0a0a14", borderRight: "1px solid #1e1e30" }}>
-        {/* Subtle amber gradient blob */}
+           style={{ background: "#0b0b0b", borderRight: "1px solid #251212" }}>
+        {/* Subtle red gradient blob */}
         <div className="absolute -top-20 -left-20 w-64 h-64 rounded-full pointer-events-none"
-             style={{ background: "radial-gradient(circle, rgba(245,158,11,0.07) 0%, transparent 70%)" }} />
+             style={{ background: "radial-gradient(circle, rgba(220,38,38,0.07) 0%, transparent 70%)" }} />
 
         <div>
           <Link href="/" className="flex items-center gap-2.5 mb-16">
-            <div className="w-7 h-7 rounded-lg bg-amber-500 flex items-center justify-center shrink-0"
-                 style={{ boxShadow: "0 0 14px rgba(245,158,11,0.4)" }}>
+            <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
+                 style={{ background: "#dc2626", boxShadow: "0 0 12px rgba(220,38,38,0.35)" }}>
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                <path d="M7 1L13 4.5V9.5L7 13L1 9.5V4.5L7 1Z" fill="#07070f"/>
-                <circle cx="7" cy="7" r="2" fill="#07070f"/>
+                <path d="M7 1L13 4.5V9.5L7 13L1 9.5V4.5L7 1Z" fill="#fff"/>
+                <circle cx="7" cy="7" r="2" fill="#fff"/>
               </svg>
             </div>
             <span className="text-white font-bold text-sm tracking-tight">OSHA Vision</span>
@@ -95,12 +94,13 @@ export default function AuthPage() {
         </div>
 
         <div className="space-y-3">
-          <div className="flex items-start gap-3 p-3 rounded-xl" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
+          <div className="flex items-start gap-3 p-3 rounded-xl"
+               style={{ background: "rgba(255,255,255,0.02)", border: "1px solid #251212" }}>
             <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5"
-                 style={{ background: "rgba(245,158,11,0.1)" }}>
+                 style={{ background: "rgba(220,38,38,0.1)" }}>
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                <path d="M7 1L13 4.5V9.5L7 13L1 9.5V4.5L7 1Z" stroke="#f59e0b" strokeWidth="1.2" strokeLinejoin="round"/>
-                <path d="M5 7L6.5 8.5L9 5.5" stroke="#f59e0b" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M7 1L13 4.5V9.5L7 13L1 9.5V4.5L7 1Z" stroke="#dc2626" strokeWidth="1.2" strokeLinejoin="round"/>
+                <path d="M5 7L6.5 8.5L9 5.5" stroke="#dc2626" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </div>
             <div>
@@ -109,7 +109,8 @@ export default function AuthPage() {
             </div>
           </div>
 
-          <div className="flex items-start gap-3 p-3 rounded-xl" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
+          <div className="flex items-start gap-3 p-3 rounded-xl"
+               style={{ background: "rgba(255,255,255,0.02)", border: "1px solid #251212" }}>
             <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5"
                  style={{ background: "rgba(52,211,153,0.1)" }}>
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
@@ -130,7 +131,6 @@ export default function AuthPage() {
         <div className="w-full max-w-sm animate-fade-in-up">
 
           {confirmed ? (
-            /* Email confirmation state */
             <div className="text-center space-y-4">
               <div className="w-14 h-14 rounded-2xl mx-auto flex items-center justify-center"
                    style={{ background: "rgba(52,211,153,0.1)", border: "1px solid rgba(52,211,153,0.2)" }}>
@@ -171,15 +171,15 @@ export default function AuthPage() {
 
               {/* Tab toggle */}
               <div className="flex p-1 rounded-xl mb-6"
-                   style={{ background: "#0f0f1a", border: "1px solid #1e1e30" }}>
+                   style={{ background: "#0e0e0e", border: "1px solid #251212" }}>
                 {(["signin", "signup"] as Tab[]).map((t) => (
                   <button
                     key={t}
                     onClick={() => switchTab(t)}
                     className="flex-1 py-2 text-sm font-medium rounded-lg transition-all duration-150"
                     style={tab === t
-                      ? { background: "#1e1e30", color: "#ffffff" }
-                      : { color: "#4b5563" }
+                      ? { background: "#1a0a0a", color: "#ffffff", border: "1px solid #3a1818" }
+                      : { color: "#4b5563", border: "1px solid transparent" }
                     }
                   >
                     {t === "signin" ? "Sign in" : "Sign up"}
@@ -200,12 +200,9 @@ export default function AuthPage() {
                     autoComplete="email"
                     className="w-full px-3.5 py-2.5 rounded-xl text-sm text-white placeholder-gray-700
                                outline-none transition-all duration-150"
-                    style={{
-                      background: "#0f0f1a",
-                      border: "1px solid #1e1e30",
-                    }}
-                    onFocus={(e) => (e.target.style.borderColor = "rgba(245,158,11,0.4)")}
-                    onBlur={(e) => (e.target.style.borderColor = "#1e1e30")}
+                    style={{ background: "#0e0e0e", border: "1px solid #251212" }}
+                    onFocus={(e) => (e.target.style.borderColor = "rgba(220,38,38,0.45)")}
+                    onBlur={(e) => (e.target.style.borderColor = "#251212")}
                   />
                 </div>
 
@@ -222,12 +219,9 @@ export default function AuthPage() {
                     autoComplete={tab === "signin" ? "current-password" : "new-password"}
                     className="w-full px-3.5 py-2.5 rounded-xl text-sm text-white placeholder-gray-700
                                outline-none transition-all duration-150"
-                    style={{
-                      background: "#0f0f1a",
-                      border: "1px solid #1e1e30",
-                    }}
-                    onFocus={(e) => (e.target.style.borderColor = "rgba(245,158,11,0.4)")}
-                    onBlur={(e) => (e.target.style.borderColor = "#1e1e30")}
+                    style={{ background: "#0e0e0e", border: "1px solid #251212" }}
+                    onFocus={(e) => (e.target.style.borderColor = "rgba(220,38,38,0.45)")}
+                    onBlur={(e) => (e.target.style.borderColor = "#251212")}
                   />
                 </div>
 

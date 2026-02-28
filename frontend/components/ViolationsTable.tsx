@@ -83,7 +83,7 @@ export default function ViolationsTable({
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr style={{ borderBottom: "1px solid #1e1e30" }}>
+            <tr style={{ borderBottom: "1px solid #251212" }}>
               {["Timestamp", "Violation", "Description", "Confidence", "Frame"].map((h) => (
                 <th key={h}
                     className="text-left py-2.5 px-3 font-medium text-xs tracking-widest uppercase"
@@ -105,12 +105,12 @@ export default function ViolationsTable({
                   onClick={() => { onSeek(v.timestamp); onViolationClick(v); }}
                   className="cursor-pointer transition-colors duration-100"
                   style={{
-                    borderBottom: "1px solid rgba(30,30,48,0.6)",
-                    backgroundColor: isActive ? "rgba(245,158,11,0.07)" : undefined,
+                    borderBottom: "1px solid rgba(37,18,18,0.7)",
+                    backgroundColor: isActive ? "rgba(220,38,38,0.06)" : undefined,
                     borderLeft: isActive ? `2px solid ${color}` : "2px solid transparent",
                   }}
                   onMouseEnter={(e) => {
-                    if (!isActive) e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.02)";
+                    if (!isActive) e.currentTarget.style.backgroundColor = "rgba(220,38,38,0.02)";
                   }}
                   onMouseLeave={(e) => {
                     if (!isActive) e.currentTarget.style.backgroundColor = "";
@@ -122,12 +122,12 @@ export default function ViolationsTable({
                       onClick={(e) => { e.stopPropagation(); onSeek(v.timestamp); onViolationClick(v); }}
                       className="flex items-center gap-1.5 font-mono text-xs rounded-lg px-2 py-1 transition-colors"
                       style={{
-                        background: "rgba(245,158,11,0.08)",
-                        color: "#f59e0b",
-                        border: "1px solid rgba(245,158,11,0.15)",
+                        background: "rgba(220,38,38,0.08)",
+                        color: "#f87171",
+                        border: "1px solid rgba(220,38,38,0.18)",
                       }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(245,158,11,0.15)")}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(245,158,11,0.08)")}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(220,38,38,0.15)")}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(220,38,38,0.08)")}
                     >
                       <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
                         <path d="M3 2L8 5L3 8V2Z" fill="currentColor"/>
@@ -160,7 +160,7 @@ export default function ViolationsTable({
                   {/* Confidence */}
                   <td className="py-3 px-3">
                     <div className="flex items-center gap-2">
-                      <div className="w-14 h-1 rounded-full overflow-hidden" style={{ background: "#1e1e30" }}>
+                      <div className="w-14 h-1 rounded-full overflow-hidden" style={{ background: "#251212" }}>
                         <div
                           className="h-full rounded-full"
                           style={{ width: `${(v.confidence * 100).toFixed(0)}%`, background: color }}
@@ -186,7 +186,7 @@ export default function ViolationsTable({
                         View
                       </a>
                     ) : (
-                      <span style={{ color: "#2a2a40" }} className="text-xs">—</span>
+                      <span style={{ color: "#3a1818" }} className="text-xs">—</span>
                     )}
                   </td>
                 </tr>

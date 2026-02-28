@@ -15,7 +15,7 @@ export default function ProcessingStatus({
       <div className="relative w-16 h-16">
         {/* Static ring */}
         <svg className="absolute inset-0 w-full h-full" viewBox="0 0 64 64">
-          <circle cx="32" cy="32" r="28" fill="none" stroke="#1e1e30" strokeWidth="4" />
+          <circle cx="32" cy="32" r="28" fill="none" stroke="#251212" strokeWidth="4" />
         </svg>
         {/* Spinning arc */}
         <svg className="absolute inset-0 w-full h-full animate-spin" viewBox="0 0 64 64"
@@ -23,7 +23,7 @@ export default function ProcessingStatus({
           <circle
             cx="32" cy="32" r="28"
             fill="none"
-            stroke="#f59e0b"
+            stroke="#dc2626"
             strokeWidth="4"
             strokeLinecap="round"
             strokeDasharray="44 132"
@@ -32,10 +32,10 @@ export default function ProcessingStatus({
         {/* Center icon */}
         <div className="absolute inset-0 flex items-center justify-center">
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-            <circle cx="10" cy="10" r="3" fill="#f59e0b" />
-            <path d="M10 3V5M10 15V17M3 10H5M15 10H17" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round"/>
+            <circle cx="10" cy="10" r="3" fill="#dc2626" />
+            <path d="M10 3V5M10 15V17M3 10H5M15 10H17" stroke="#dc2626" strokeWidth="1.5" strokeLinecap="round"/>
             <path d="M5.05 5.05L6.46 6.46M13.54 13.54L14.95 14.95M14.95 5.05L13.54 6.46M6.46 13.54L5.05 14.95"
-                  stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round" opacity="0.5"/>
+                  stroke="#dc2626" strokeWidth="1.5" strokeLinecap="round" opacity="0.4"/>
           </svg>
         </div>
       </div>
@@ -51,8 +51,8 @@ export default function ProcessingStatus({
         {[0, 1, 2].map((i) => (
           <span
             key={i}
-            className="w-1.5 h-1.5 rounded-full bg-amber-500/60 animate-pulse"
-            style={{ animationDelay: `${i * 0.2}s` }}
+            className="w-1.5 h-1.5 rounded-full animate-pulse"
+            style={{ background: "rgba(220,38,38,0.55)", animationDelay: `${i * 0.2}s` }}
           />
         ))}
       </div>
