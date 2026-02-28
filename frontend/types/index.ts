@@ -15,9 +15,10 @@ export interface Violation {
   id: string;
   video_id: string;
   timestamp: number;
-  violation_type: "helmet_violation" | "vest_violation";
+  violation_type: string;
   confidence: number;
   frame_url: string | null;
+  description: string | null;
 }
 
 export interface UploadResponse {

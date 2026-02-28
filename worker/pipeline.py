@@ -143,6 +143,7 @@ def process_video(video_id: str) -> None:
                     "violation_type": v["violation_type"],
                     "confidence": v.get("confidence", 0.0),
                     "frame_url": v.get("frame_url"),
+                    "description": v.get("description"),
                 }
                 for v in all_violations
             ]
