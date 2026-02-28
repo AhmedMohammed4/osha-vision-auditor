@@ -173,10 +173,15 @@ def process_video(video_id: str) -> None:
         )
 
     except Exception as exc:
-        logger.error(f"[{video_id}] Pipeline failed: {exc}", exc_info=True)
+        import traceback
+        error_detail = traceback.format_exc()
+        logger.error(f"[{video_id}] Pipeline failed: {exc}\n{error_detail}")
         try:
             from backend.services.supabase_client import get_supabase as _get_sb
-            _get_sb().table("videos").update({"status": "failed"}).eq("id", video_id).execute()
+            _get_sb().table("videos").update({
+                "status": "failed",
+                "report": f"PIPELINE ERROR:\n{error_detail}",
+            }).eq("id", video_id).execute()
         except Exception:
             pass
         raise
