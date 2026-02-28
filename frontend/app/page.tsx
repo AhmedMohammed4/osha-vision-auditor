@@ -34,9 +34,9 @@ So we started building. Not a chatbot, not a dashboard with fake metrics — an 
     label: "What We Built",
     content: {
       heading: "Upload a video. Get a report. That's the whole product.",
-      body: `An end-to-end pipeline: upload any worksite video, we extract one frame per second, run each through YOLOv8 to locate every person in the frame, then use color-space analysis to check the head region for hard hat colors and the torso for hi-viz vest patterns.
+      body: `An end-to-end pipeline: upload any worksite video, we sample a frame every 5 seconds and send each through Claude AI Vision, which inspects the full scene against all OSHA 29 CFR 1926 construction safety categories — PPE, fall protection, ladders, scaffolding, electrical, excavation, fire safety, and more.
 
-Every violation gets a timestamp. Risk gets scored 0–100. GPT-4o turns the raw data into a structured OSHA-aligned report with actionable recommendations.
+Every violation gets a timestamp. Risk gets scored 0–100. Claude then turns the raw data into a structured OSHA-aligned report with actionable recommendations.
 
 It doesn't replace a safety officer. It covers every second between their rounds.`,
     },
@@ -59,7 +59,7 @@ We built this in 72 hours. We know what version 2 looks like. We just need the t
 const STATS = [
   { value: 1069, suffix: "", label: "US construction fatalities", sublabel: "Bureau of Labor Statistics, 2023" },
   { value: 60, suffix: "%", label: "were preventable with PPE", sublabel: "OSHA incident data" },
-  { value: 3, suffix: "s", label: "per-frame AI analysis", sublabel: "YOLOv8 on standard CPU" },
+  { value: 14, suffix: "+", label: "OSHA violation types detected", sublabel: "Claude AI Vision" },
   { value: 170, suffix: "B", label: "annual US injury cost", sublabel: "National Safety Council" },
 ];
 
@@ -79,7 +79,7 @@ const STEPS = [
   {
     n: "02",
     title: "AI scans every second",
-    desc: "YOLOv8 finds every person in every frame. Color-space analysis checks for hard hats and hi-viz vests.",
+    desc: "Claude AI Vision inspects each frame against all OSHA 29 CFR 1926 categories — PPE, fall protection, scaffolding, electrical, and more.",
     icon: (
       <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
         <circle cx="11" cy="11" r="8.5" stroke="#f59e0b" strokeWidth="1.4"/>
@@ -193,7 +193,7 @@ export default function LandingPage() {
                style={{ borderColor: "rgba(245,158,11,0.2)", background: "rgba(245,158,11,0.05)" }}>
             <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
             <span className="text-xs font-semibold text-amber-400 tracking-wide">
-              Open source · Built in 72h · YOLOv8 + GPT-4o
+              Open source · Built in 72h · Claude AI Vision
             </span>
           </div>
 
