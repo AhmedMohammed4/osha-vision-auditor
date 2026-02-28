@@ -1,12 +1,13 @@
 """
-LLM-powered OSHA safety report generator using OpenAI API.
+LLM-powered OSHA safety report generator using Claude API.
 """
 
 import logging
 import os
+from collections import Counter
 from typing import Any, Dict, List
 
-import openai
+import anthropic
 
 logger = logging.getLogger(__name__)
 
@@ -17,10 +18,10 @@ def generate_report(
     risk_score: float,
 ) -> str:
     """
-    Generate a professional OSHA safety report using OpenAI gpt-4o-mini.
+    Generate a professional OSHA safety report using Claude claude-sonnet-4-6.
 
-    Sends a structured violation summary to the LLM and returns
-    a formatted safety report with assessment, issues, and recommendations.
+    Sends a structured violation summary to Claude and returns a formatted
+    safety report with assessment, issues, and recommendations.
 
     Args:
         video_id: UUID of the video (for context in logs).
@@ -30,17 +31,27 @@ def generate_report(
     Returns:
         Formatted safety report string.
     """
-    api_key = os.getenv("OPENAI_API_KEY")
+    api_key = os.getenv("ANTHROPIC_API_KEY")
     if not api_key:
-        logger.warning("OPENAI_API_KEY not set — returning default report.")
+        logger.warning("ANTHROPIC_API_KEY not set — returning default report.")
         return _default_report(violations, risk_score)
 
-    helmet_violations = [v for v in violations if v["violation_type"] == "helmet_violation"]
-    vest_violations = [v for v in violations if v["violation_type"] == "vest_violation"]
+    # Count violations by type for the prompt
+    type_counts = Counter(v.get("violation_type", "unknown") for v in violations)
+    violation_summary = "\n".join(
+        f"- {vtype.replace('_', ' ').title()}: {count} instance(s)"
+        for vtype, count in sorted(type_counts.items(), key=lambda x: -x[1])
+    ) or "- None detected"
 
-    # Collect unique timestamps for context (limit to first 10)
-    violation_timestamps = sorted(set(v["timestamp"] for v in violations))[:10]
-    timestamps_str = ", ".join(f"{t:.1f}s" for t in violation_timestamps)
+    # Collect unique OSHA citations referenced
+    citations = sorted(set(
+        v.get("osha_citation", "") for v in violations if v.get("osha_citation")
+    ))
+    citations_str = ", ".join(citations) if citations else "None"
+
+    # Sample timestamps for context (first 10 unique)
+    violation_timestamps = sorted(set(v.get("timestamp", 0) for v in violations))[:10]
+    timestamps_str = ", ".join(f"{t:.1f}s" for t in violation_timestamps) or "None"
 
     severity = _severity_label(risk_score)
 
@@ -50,17 +61,18 @@ INSPECTION RESULTS:
 - Video ID: {video_id}
 - Overall Risk Score: {risk_score}/100 ({severity})
 - Total Violations Detected: {len(violations)}
-- Hard Hat (Helmet) Violations: {len(helmet_violations)}
-- Safety Vest Violations: {len(vest_violations)}
-- Violation Timestamps: {timestamps_str if timestamps_str else "None"}
+- Violation Breakdown:
+{violation_summary}
+- OSHA Standards Referenced: {citations_str}
+- Violation Timestamps: {timestamps_str}
 
 Provide a structured report with EXACTLY these three sections:
 
 1. OVERALL RISK ASSESSMENT
-Write 2–3 sentences assessing the overall safety compliance level based on the score and violation counts.
+Write 2–3 sentences assessing the overall safety compliance level based on the score and violation types found.
 
 2. TOP SAFETY ISSUES
-List the 3 most critical safety issues identified as bullet points. Be specific to the violations found.
+List the 3 most critical safety issues identified as bullet points. Be specific to the violations found and reference the OSHA standards involved.
 
 3. RECOMMENDED ACTIONS
 List 5 concrete, actionable recommendations to improve compliance. Reference relevant OSHA standards where applicable (e.g., 29 CFR 1926.100 for head protection).
@@ -68,19 +80,21 @@ List 5 concrete, actionable recommendations to improve compliance. Reference rel
 Keep the tone professional and concise. Do not include introductory text before section 1."""
 
     try:
-        client = openai.OpenAI(api_key=api_key)
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[{"role": "user", "content": prompt}],
+        client = anthropic.Anthropic(api_key=api_key)
+        response = client.messages.create(
+            model="claude-sonnet-4-6",
             max_tokens=600,
-            temperature=0.3,
+            messages=[{"role": "user", "content": prompt}],
         )
-        report_text = response.choices[0].message.content.strip()
+        report_text = response.content[0].text.strip()
         logger.info(f"LLM report generated for video {video_id} ({len(report_text)} chars)")
         return report_text
 
+    except anthropic.APIError as exc:
+        logger.error(f"Anthropic API error for video {video_id}: {exc}")
+        return _default_report(violations, risk_score)
     except Exception as exc:
-        logger.error(f"OpenAI API error for video {video_id}: {exc}")
+        logger.error(f"Unexpected error generating report for video {video_id}: {exc}")
         return _default_report(violations, risk_score)
 
 
@@ -96,41 +110,44 @@ def _severity_label(score: float) -> str:
 
 def _default_report(violations: List[Dict[str, Any]], risk_score: float) -> str:
     """
-    Fallback report when OpenAI API is unavailable.
+    Fallback report when Claude API is unavailable.
     Produces a deterministic text-based report from violation data.
     """
-    helmet_count = sum(1 for v in violations if v["violation_type"] == "helmet_violation")
-    vest_count = sum(1 for v in violations if v["violation_type"] == "vest_violation")
     severity = _severity_label(risk_score)
+    type_counts = Counter(v.get("violation_type", "unknown") for v in violations)
 
-    if len(violations) == 0:
+    if not violations:
         return f"""1. OVERALL RISK ASSESSMENT
-This worksite inspection recorded a risk score of {risk_score}/100, classified as {severity}. No PPE violations were detected, indicating full compliance with OSHA PPE requirements during the inspected period.
+This worksite inspection recorded a risk score of {risk_score}/100, classified as {severity}. No violations were detected during the inspected period, indicating strong compliance with OSHA 29 CFR 1926 construction safety standards.
 
 2. TOP SAFETY ISSUES
-• No Hard Hat Violations detected — all workers observed were wearing proper head protection per OSHA 29 CFR 1926.100.
-• No Safety Vest Violations detected — all workers observed were wearing high-visibility vests per OSHA 29 CFR 1926.65.
-• No systemic PPE non-compliance identified during this inspection period.
+• No violations detected — all observed workers and conditions met OSHA safety requirements.
+• No PPE deficiencies identified during this inspection period.
+• No environmental or equipment hazards observed.
 
 3. RECOMMENDED ACTIONS
-• Continue enforcing mandatory PPE policies at all site entry points.
+• Continue enforcing mandatory PPE policies at all site entry points per 29 CFR 1926.100.
 • Conduct periodic unannounced inspections to maintain compliance standards.
 • Document this inspection result as part of your ongoing OSHA safety records.
 • Schedule routine OSHA safety refresher training to sustain the compliance culture.
-• Review and update the written PPE program per OSHA 29 CFR 1910.132 annually."""
+• Review and update the written PPE program per 29 CFR 1910.132 annually."""
 
-    compliance_label = 'significant' if risk_score >= 50 else 'moderate'
+    top_violations = type_counts.most_common(3)
+    issues_text = "\n".join(
+        f"• {vtype.replace('_', ' ').title()}: {count} instance(s) detected"
+        for vtype, count in top_violations
+    )
+    compliance_label = "significant" if risk_score >= 50 else "moderate"
+
     return f"""1. OVERALL RISK ASSESSMENT
-This worksite inspection recorded a risk score of {risk_score}/100, classified as {severity}. A total of {len(violations)} violations were detected, indicating {compliance_label} non-compliance with OSHA PPE requirements.
+This worksite inspection recorded a risk score of {risk_score}/100, classified as {severity}. A total of {len(violations)} violations were detected across {len(type_counts)} violation categories, indicating {compliance_label} non-compliance with OSHA 29 CFR 1926 construction safety standards.
 
 2. TOP SAFETY ISSUES
-• Hard Hat Violations: {helmet_count} instances of workers observed without proper head protection, violating OSHA 29 CFR 1926.100.
-• Safety Vest Violations: {vest_count} instances of workers without high-visibility vests, violating OSHA 29 CFR 1926.65.
-• Systematic PPE Non-Compliance: Recurring violations suggest inadequate enforcement of PPE policies on-site.
+{issues_text}
 
 3. RECOMMENDED ACTIONS
-• Immediately brief all on-site workers on mandatory PPE requirements before resuming operations.
-• Conduct a PPE inventory audit to ensure adequate supply of hard hats and safety vests for all personnel.
-• Appoint a dedicated Safety Officer to perform daily PPE compliance checks at site entry points.
-• Implement a written PPE program per OSHA 29 CFR 1910.132 with documented enforcement procedures.
-• Schedule quarterly OSHA safety training sessions for all workers and supervisors to reinforce compliance culture."""
+• Immediately conduct a site-wide safety briefing addressing all detected violation types before resuming operations.
+• Perform a PPE inventory audit to ensure adequate supply of required protective equipment for all personnel.
+• Appoint a dedicated Safety Officer to perform daily compliance checks at site entry points and during operations.
+• Implement a written safety program per 29 CFR 1910.132 with documented enforcement procedures and disciplinary actions.
+• Schedule quarterly OSHA safety training sessions covering all violation categories identified in this inspection."""

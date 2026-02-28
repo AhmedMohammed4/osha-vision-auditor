@@ -7,7 +7,7 @@ import os
 import uuid
 from typing import List
 
-from fastapi import APIRouter, HTTPException, UploadFile, File
+from fastapi import APIRouter, BackgroundTasks, HTTPException, UploadFile, File
 
 from ..models.schemas import UploadResponse, ProcessResponse, Video, Violation, VideoStatus
 from ..services.supabase_client import get_supabase
@@ -88,20 +88,20 @@ async def upload_video_endpoint(file: UploadFile = File(...)) -> UploadResponse:
 
 
 @router.post("/process-video/{video_id}", response_model=ProcessResponse)
-def process_video_endpoint(video_id: str) -> ProcessResponse:
+async def process_video_endpoint(video_id: str, background_tasks: BackgroundTasks) -> ProcessResponse:
     """
-    Trigger synchronous processing of an uploaded video.
+    Trigger background processing of an uploaded video.
 
-    Calls the worker pipeline which extracts frames, runs detection,
-    stores violations, and updates the video record on completion.
+    Returns immediately after queueing the pipeline. The frontend polls
+    GET /video/{video_id} until status changes to 'completed' or 'failed'.
 
     Args:
         video_id: UUID of the video to process.
 
     Returns:
-        ProcessResponse confirming processing has started.
+        ProcessResponse confirming processing has been queued.
     """
-    # Verify the video exists and is in 'uploaded' state
+    # Verify the video exists and is in a processable state
     supabase = get_supabase()
     try:
         result = supabase.table("videos").select("id, status").eq("id", video_id).single().execute()
@@ -115,16 +115,12 @@ def process_video_endpoint(video_id: str) -> ProcessResponse:
             detail=f"Video is already in status '{video['status']}'.",
         )
 
-    # Run pipeline synchronously (blocking — acceptable for hackathon MVP)
-    logger.info(f"Starting pipeline for video: {video_id}")
-    try:
-        from worker.pipeline import process_video  # noqa: E402 — imported here to avoid circular import
-        process_video(video_id)
-    except Exception as exc:
-        logger.error(f"Pipeline failed for {video_id}: {exc}")
-        raise HTTPException(status_code=500, detail=f"Processing failed: {str(exc)}")
+    # Queue pipeline as a background task — returns immediately
+    from worker.pipeline import process_video  # noqa: E402
+    background_tasks.add_task(process_video, video_id)
+    logger.info(f"Pipeline queued for video: {video_id}")
 
-    return ProcessResponse(video_id=video_id, message="Processing completed successfully.")
+    return ProcessResponse(video_id=video_id, message="Processing started.")
 
 
 @router.get("/video/{video_id}", response_model=Video)
