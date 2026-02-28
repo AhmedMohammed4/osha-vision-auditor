@@ -1,8 +1,8 @@
 """
 Main video processing pipeline for OSHA Vision Auditor.
 
-Orchestrates: download → frame extraction → detection → rule evaluation
-             → violation storage → risk scoring → LLM report → DB update.
+Orchestrates: download → frame extraction → detection → violation storage
+             → risk scoring → LLM report → DB update.
 """
 
 import logging
@@ -14,8 +14,7 @@ from typing import Any, Dict, List
 import cv2
 import numpy as np
 
-from .detector import PPEDetector
-from .rule_engine import evaluate_frame
+from .detector import detect_violations
 from .risk_scorer import compute_risk_score
 from .llm_report import generate_report
 
@@ -30,14 +29,13 @@ def process_video(video_id: str) -> None:
         1. Mark video as 'processing' in DB.
         2. Download video bytes from Supabase Storage.
         3. Write to a temporary file for OpenCV.
-        4. Extract 1 frame per second using OpenCV.
-        5. Run PPE detection on each sampled frame.
-        6. Apply OSHA rule engine to get violations.
-        7. Upload violation frames to Supabase Storage.
-        8. Bulk insert violations into DB.
-        9. Compute risk score.
-        10. Generate LLM safety report.
-        11. Update video record: status='completed', risk_score, report.
+        4. Extract 1 frame every 2 seconds using OpenCV.
+        5. Run Claude Vision detection on each sampled frame.
+        6. Upload violation frames to Supabase Storage.
+        7. Bulk insert violations into DB.
+        8. Compute risk score.
+        9. Generate LLM safety report.
+        10. Update video record: status='completed', risk_score, report.
 
     On any unhandled exception, sets video status to 'failed'.
 
@@ -82,7 +80,7 @@ def process_video(video_id: str) -> None:
         fps = cap.get(cv2.CAP_PROP_FPS) or 25.0
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         duration = total_frames / fps if fps > 0 else 0.0
-        frame_interval = max(1, int(round(fps)))  # sample every ~1 second
+        frame_interval = max(1, int(round(fps * 5)))  # sample every ~5 seconds
 
         logger.info(
             f"[{video_id}] Video metadata: fps={fps:.2f}, "
@@ -92,16 +90,12 @@ def process_video(video_id: str) -> None:
         # Update duration in DB
         supabase.table("videos").update({"duration": duration}).eq("id", video_id).execute()
 
-        # Step 5 — Initialize detector
-        ppe_model_path = os.getenv("PPE_MODEL_PATH") or None
-        detector = PPEDetector(ppe_model_path=ppe_model_path)
-
         all_violations: List[Dict[str, Any]] = []
         frame_number = 0
-        sampled_seconds = 0
+        sampled_count = 0
 
-        # Step 6 — Frame extraction and detection loop
-        logger.info(f"[{video_id}] Starting frame analysis at 1 FPS...")
+        # Step 5 — Frame extraction and Claude Vision detection loop
+        logger.info(f"[{video_id}] Starting frame analysis at 1 frame per 2s...")
 
         while True:
             ret, frame = cap.read()
@@ -110,21 +104,19 @@ def process_video(video_id: str) -> None:
 
             if frame_number % frame_interval == 0:
                 timestamp = frame_number / fps
-                sampled_seconds += 1
+                sampled_count += 1
 
-                # Detect persons and PPE
-                persons = detector.detect(frame, timestamp)
-
-                # Apply OSHA rules
-                frame_violations = evaluate_frame(persons, timestamp)
+                # Detect violations with Claude Vision
+                frame_violations = detect_violations(frame, timestamp)
 
                 if frame_violations:
-                    # Step 7 — Upload violation frame to Storage
+                    # Step 6 — Upload violation frame to Storage
                     frame_url = _encode_and_upload_frame(
                         frame, video_id, timestamp, upload_frame
                     )
-                    # Attach frame URL to each violation
+                    # Attach metadata to each violation
                     for v in frame_violations:
+                        v["timestamp"] = timestamp
                         v["frame_url"] = frame_url
                         v["video_id"] = video_id
 
@@ -139,17 +131,17 @@ def process_video(video_id: str) -> None:
         cap.release()
         logger.info(
             f"[{video_id}] Analysis complete. "
-            f"Sampled {sampled_seconds}s, found {len(all_violations)} violations."
+            f"Sampled {sampled_count} frames, found {len(all_violations)} violations."
         )
 
-        # Step 8 — Bulk insert violations
+        # Step 7 — Bulk insert violations
         if all_violations:
             violation_rows = [
                 {
                     "video_id": v["video_id"],
                     "timestamp": v["timestamp"],
                     "violation_type": v["violation_type"],
-                    "confidence": v["confidence"],
+                    "confidence": v.get("confidence", 0.0),
                     "frame_url": v.get("frame_url"),
                 }
                 for v in all_violations
@@ -157,14 +149,14 @@ def process_video(video_id: str) -> None:
             supabase.table("violations").insert(violation_rows).execute()
             logger.info(f"[{video_id}] Inserted {len(violation_rows)} violations to DB.")
 
-        # Step 9 — Compute risk score
-        risk_score = compute_risk_score(all_violations, sampled_seconds)
+        # Step 8 — Compute risk score
+        risk_score = compute_risk_score(all_violations, sampled_count)
 
-        # Step 10 — Generate LLM report
+        # Step 9 — Generate LLM report
         logger.info(f"[{video_id}] Generating LLM safety report...")
         report_text = generate_report(video_id, all_violations, risk_score)
 
-        # Step 11 — Update video record as completed
+        # Step 10 — Update video record as completed
         supabase.table("videos").update(
             {
                 "status": "completed",
