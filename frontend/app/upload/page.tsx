@@ -123,7 +123,7 @@ export default function UploadPage() {
           ) : pageState === "uploading" ? (
             <ProcessingStatus message="Uploading video..." subMessage="Securely transferring to storage" />
           ) : (
-            <ProcessingStatus message="Analyzing for violations..." subMessage="YOLOv8 scanning each frame at 1 FPS" />
+            <ProcessingStatus message="Analyzing for violations..." subMessage="Claude AI scanning each frame for OSHA violations" />
           )}
         </div>
 
@@ -135,21 +135,21 @@ export default function UploadPage() {
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
                 <path d="M6 1L11 3.5V8.5L6 11L1 8.5V3.5L6 1Z" stroke="#4a4a6a" strokeWidth="1" strokeLinejoin="round"/>
               </svg>
-              YOLOv8 detection
+              Claude Vision AI
             </span>
             <span className="flex items-center gap-1.5">
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
                 <circle cx="6" cy="6" r="4.5" stroke="#4a4a6a" strokeWidth="1"/>
                 <path d="M6 3.5V6L7.5 7.5" stroke="#4a4a6a" strokeWidth="1" strokeLinecap="round"/>
               </svg>
-              1 FPS sampling
+              Frame every 5s
             </span>
             <span className="flex items-center gap-1.5">
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
                 <rect x="1.5" y="2" width="9" height="8" rx="1.5" stroke="#4a4a6a" strokeWidth="1"/>
                 <path d="M3.5 5H8.5M3.5 7H6.5" stroke="#4a4a6a" strokeWidth="1" strokeLinecap="round"/>
               </svg>
-              GPT-4o report
+              Claude AI report
             </span>
             <span className="flex items-center gap-1.5">
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
