@@ -6,6 +6,8 @@ interface ViolationsTimelineProps {
   violations: Violation[];
   duration: number;
   onSeek: (timestamp: number) => void;
+  activeViolationId?: string | null;
+  onViolationClick: (violation: Violation) => void;
 }
 
 function formatTime(seconds: number): string {
@@ -14,40 +16,48 @@ function formatTime(seconds: number): string {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-const VIOLATION_COLORS: Record<string, string> = {
-  helmet_violation: "#f97316",
-  vest_violation: "#60a5fa",
-};
+function violationColor(type: string): string {
+  if (["fall_hazard", "no_fall_harness", "electrical_hazard", "excavation_hazard"].includes(type))
+    return "#ef4444";
+  if (["no_hard_hat", "unsafe_ladder", "scaffold_violation", "fire_hazard"].includes(type))
+    return "#f97316";
+  if (["no_eye_protection", "no_safety_vest", "no_gloves", "improper_footwear"].includes(type))
+    return "#60a5fa";
+  return "#f59e0b";
+}
 
-const VIOLATION_LABELS: Record<string, string> = {
-  helmet_violation: "Hard Hat",
-  vest_violation: "Safety Vest",
-};
+function violationLabel(type: string): string {
+  return type
+    .split("_")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+}
 
 export default function ViolationsTimeline({
   violations,
   duration,
   onSeek,
+  activeViolationId,
+  onViolationClick,
 }: ViolationsTimelineProps) {
   if (duration <= 0) return null;
 
-  const helmetCount = violations.filter((v) => v.violation_type === "helmet_violation").length;
-  const vestCount = violations.filter((v) => v.violation_type === "vest_violation").length;
+  const typeSet = Array.from(new Set(violations.map((v) => v.violation_type)));
 
   return (
     <div className="card space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-start justify-between gap-4">
         <p className="section-label">Violations Timeline</p>
-        <div className="flex gap-4 text-xs text-gray-500">
-          <span className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-orange-500 inline-block shrink-0" />
-            Hard Hat ({helmetCount})
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-blue-400 inline-block shrink-0" />
-            Safety Vest ({vestCount})
-          </span>
+        <div className="flex flex-wrap gap-x-4 gap-y-1.5 justify-end text-xs text-gray-500">
+          {typeSet.map((type) => (
+            <span key={type} className="flex items-center gap-1.5 shrink-0">
+              <span
+                className="w-2 h-2 rounded-full inline-block shrink-0"
+                style={{ backgroundColor: violationColor(type) }}
+              />
+              {violationLabel(type)} ({violations.filter((v) => v.violation_type === type).length})
+            </span>
+          ))}
         </div>
       </div>
 
@@ -61,34 +71,37 @@ export default function ViolationsTimeline({
         </div>
       ) : (
         <div className="space-y-1.5">
-          {/* Track */}
-          <div className="relative h-5 flex items-center">
-            {/* Background bar */}
+          <div className="relative h-6 flex items-center">
             <div className="absolute inset-y-0 left-0 right-0 flex items-center">
               <div className="w-full h-2 rounded-full" style={{ background: "#1e1e30" }} />
             </div>
 
-            {/* Violation markers */}
             {violations.map((v) => {
               const position = Math.max(0, Math.min(100, (v.timestamp / duration) * 100));
-              const color = VIOLATION_COLORS[v.violation_type] ?? "#f59e0b";
-              const label = VIOLATION_LABELS[v.violation_type] ?? v.violation_type;
+              const color = violationColor(v.violation_type);
+              const isActive = v.id === activeViolationId;
 
               return (
                 <button
                   key={v.id}
-                  onClick={() => onSeek(v.timestamp)}
-                  title={`${label} at ${formatTime(v.timestamp)} · ${(v.confidence * 100).toFixed(0)}% confidence`}
-                  className="absolute w-3 h-3 rounded-full -translate-x-1/2
-                             hover:scale-150 transition-transform duration-150
-                             cursor-pointer z-10 ring-2 ring-[#07070f]"
-                  style={{ left: `${position}%`, backgroundColor: color }}
+                  onClick={() => { onSeek(v.timestamp); onViolationClick(v); }}
+                  title={`${violationLabel(v.violation_type)} at ${formatTime(v.timestamp)} · ${(v.confidence * 100).toFixed(0)}% confidence`}
+                  className="absolute -translate-x-1/2 transition-all duration-150 cursor-pointer z-10"
+                  style={{
+                    left: `${position}%`,
+                    width: isActive ? "16px" : "12px",
+                    height: isActive ? "16px" : "12px",
+                    borderRadius: "50%",
+                    backgroundColor: color,
+                    boxShadow: isActive
+                      ? `0 0 0 3px rgba(255,255,255,0.15), 0 0 8px ${color}`
+                      : `0 0 0 2px #07070f`,
+                  }}
                 />
               );
             })}
           </div>
 
-          {/* Time labels */}
           <div className="flex justify-between text-xs text-gray-700 select-none">
             <span>{formatTime(0)}</span>
             <span>{formatTime(duration / 2)}</span>
