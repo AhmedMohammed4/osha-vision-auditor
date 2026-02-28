@@ -89,8 +89,8 @@ export default function DashboardPage() {
     );
   }
 
-  const helmetViolations = violations.filter((v) => v.violation_type === "helmet_violation");
-  const vestViolations   = violations.filter((v) => v.violation_type === "vest_violation");
+  const helmetViolations = violations.filter((v) => v.violation_type === "no_hard_hat");
+  const vestViolations   = violations.filter((v) => v.violation_type === "no_safety_vest");
 
   const statusStyles: Record<string, { bg: string; border: string; color: string }> = {
     completed: { bg: "rgba(52,211,153,0.08)", border: "rgba(52,211,153,0.2)", color: "#34d399" },
