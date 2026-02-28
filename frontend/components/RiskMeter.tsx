@@ -6,7 +6,7 @@ interface RiskMeterProps {
 
 function getRiskColor(score: number): string {
   if (score >= 67) return "#ef4444";
-  if (score >= 34) return "#f59e0b";
+  if (score >= 34) return "#f97316";
   return "#34d399";
 }
 
@@ -18,13 +18,13 @@ function getRiskLabel(score: number): string {
 
 function getRiskBg(score: number): string {
   if (score >= 67) return "rgba(239,68,68,0.1)";
-  if (score >= 34) return "rgba(245,158,11,0.1)";
+  if (score >= 34) return "rgba(249,115,22,0.1)";
   return "rgba(52,211,153,0.1)";
 }
 
 function getRiskBorder(score: number): string {
   if (score >= 67) return "rgba(239,68,68,0.25)";
-  if (score >= 34) return "rgba(245,158,11,0.25)";
+  if (score >= 34) return "rgba(249,115,22,0.25)";
   return "rgba(52,211,153,0.25)";
 }
 
@@ -48,7 +48,7 @@ export default function RiskMeter({ score }: RiskMeterProps) {
           <path
             d="M 10 70 A 54 54 0 0 1 118 70"
             fill="none"
-            stroke="#1e1e30"
+            stroke="#251212"
             strokeWidth="10"
             strokeLinecap="round"
           />

@@ -73,7 +73,7 @@ export default function ViolationsTimeline({
         <div className="space-y-1.5">
           <div className="relative h-6 flex items-center">
             <div className="absolute inset-y-0 left-0 right-0 flex items-center">
-              <div className="w-full h-2 rounded-full" style={{ background: "#1e1e30" }} />
+              <div className="w-full h-2 rounded-full" style={{ background: "#251212" }} />
             </div>
 
             {violations.map((v) => {
@@ -95,7 +95,7 @@ export default function ViolationsTimeline({
                     backgroundColor: color,
                     boxShadow: isActive
                       ? `0 0 0 3px rgba(255,255,255,0.15), 0 0 8px ${color}`
-                      : `0 0 0 2px #07070f`,
+                      : `0 0 0 2px #090909`,
                   }}
                 />
               );
