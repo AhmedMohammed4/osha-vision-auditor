@@ -184,6 +184,7 @@ def get_violations(video_id: str) -> List[Violation]:
             violation_type=row["violation_type"],
             confidence=row["confidence"],
             frame_url=row.get("frame_url"),
+            description=row.get("description"),
         )
         for row in result.data
     ]

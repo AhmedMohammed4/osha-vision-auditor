@@ -30,9 +30,10 @@ class Violation(BaseModel):
     id: str
     video_id: str
     timestamp: float
-    violation_type: str  # helmet_violation | vest_violation
+    violation_type: str
     confidence: float
     frame_url: Optional[str] = None
+    description: Optional[str] = None
 
 
 class UploadResponse(BaseModel):

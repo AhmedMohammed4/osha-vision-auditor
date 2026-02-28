@@ -84,7 +84,7 @@ export default function ViolationsTable({
         <table className="w-full text-sm">
           <thead>
             <tr style={{ borderBottom: "1px solid #1e1e30" }}>
-              {["Timestamp", "Violation", "Confidence", "Frame"].map((h) => (
+              {["Timestamp", "Violation", "Description", "Confidence", "Frame"].map((h) => (
                 <th key={h}
                     className="text-left py-2.5 px-3 font-medium text-xs tracking-widest uppercase"
                     style={{ color: "#4a4a6a" }}>
@@ -139,7 +139,7 @@ export default function ViolationsTable({
                   {/* Type badge */}
                   <td className="py-3 px-3">
                     <span
-                      className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium"
+                      className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium whitespace-nowrap"
                       style={{
                         backgroundColor: `${color}18`,
                         color: color,
@@ -148,6 +148,13 @@ export default function ViolationsTable({
                     >
                       {violationLabel(v.violation_type)}
                     </span>
+                  </td>
+
+                  {/* Description */}
+                  <td className="py-3 px-3 max-w-xs">
+                    <p className="text-gray-400 text-xs leading-relaxed line-clamp-2">
+                      {v.description ?? "—"}
+                    </p>
                   </td>
 
                   {/* Confidence */}
