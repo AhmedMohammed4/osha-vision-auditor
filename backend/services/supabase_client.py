@@ -1,15 +1,15 @@
-"""Supabase client singleton for backend services."""
+"""Supabase client factory for backend services."""
 
 import os
-import functools
 from supabase import create_client, Client
 
 
-@functools.lru_cache(maxsize=1)
 def get_supabase() -> Client:
     """
-    Returns a cached Supabase client instance using service role key.
+    Returns a fresh Supabase client using service role key.
     Using service role key bypasses Row Level Security for backend operations.
+    A new client is created each call to avoid stale HTTP/2 connections in
+    background tasks.
     """
     url = os.getenv("SUPABASE_URL")
     key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
