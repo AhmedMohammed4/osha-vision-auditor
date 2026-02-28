@@ -1,10 +1,13 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import type { Violation } from "@/types";
 
 interface ViolationsTableProps {
   violations: Violation[];
   onSeek: (timestamp: number) => void;
+  activeViolationId?: string | null;
+  onViolationClick: (violation: Violation) => void;
 }
 
 function formatTime(seconds: number): string {
@@ -13,7 +16,41 @@ function formatTime(seconds: number): string {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-export default function ViolationsTable({ violations, onSeek }: ViolationsTableProps) {
+function violationColor(type: string): string {
+  if (["fall_hazard", "no_fall_harness", "electrical_hazard", "excavation_hazard"].includes(type))
+    return "#ef4444";
+  if (["no_hard_hat", "unsafe_ladder", "scaffold_violation", "fire_hazard"].includes(type))
+    return "#f97316";
+  if (["no_eye_protection", "no_safety_vest", "no_gloves", "improper_footwear"].includes(type))
+    return "#60a5fa";
+  return "#f59e0b";
+}
+
+function violationLabel(type: string): string {
+  return type
+    .split("_")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+}
+
+export default function ViolationsTable({
+  violations,
+  onSeek,
+  activeViolationId,
+  onViolationClick,
+}: ViolationsTableProps) {
+  const rowRefs = useRef<Record<string, HTMLTableRowElement | null>>({});
+
+  // Scroll active row into view whenever it changes
+  useEffect(() => {
+    if (activeViolationId && rowRefs.current[activeViolationId]) {
+      rowRefs.current[activeViolationId]?.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+      });
+    }
+  }, [activeViolationId]);
+
   if (violations.length === 0) {
     return (
       <div className="card flex flex-col items-center gap-3 py-12">
@@ -27,7 +64,7 @@ export default function ViolationsTable({ violations, onSeek }: ViolationsTableP
         <div className="text-center">
           <p className="text-white font-semibold text-sm">No violations detected</p>
           <p className="text-gray-600 text-xs mt-1">
-            All workers appear to be wearing required PPE.
+            All workers appear to be in compliance with OSHA safety requirements.
           </p>
         </div>
       </div>
@@ -57,98 +94,97 @@ export default function ViolationsTable({ violations, onSeek }: ViolationsTableP
             </tr>
           </thead>
           <tbody>
-            {violations.map((v) => (
-              <tr
-                key={v.id}
-                onClick={() => onSeek(v.timestamp)}
-                className="cursor-pointer transition-colors duration-100 group"
-                style={{ borderBottom: "1px solid rgba(30,30,48,0.6)" }}
-                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "rgba(245,158,11,0.04)")}
-                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "")}
-              >
-                {/* Timestamp */}
-                <td className="py-3 px-3">
-                  <button
-                    onClick={(e) => { e.stopPropagation(); onSeek(v.timestamp); }}
-                    className="flex items-center gap-1.5 font-mono text-xs rounded-lg px-2 py-1
-                               transition-colors"
-                    style={{
-                      background: "rgba(245,158,11,0.08)",
-                      color: "#f59e0b",
-                      border: "1px solid rgba(245,158,11,0.15)",
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(245,158,11,0.15)")}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(245,158,11,0.08)")}
-                  >
-                    <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                      <path d="M3 2L8 5L3 8V2Z" fill="currentColor"/>
-                    </svg>
-                    {formatTime(v.timestamp)}
-                  </button>
-                </td>
+            {violations.map((v) => {
+              const isActive = v.id === activeViolationId;
+              const color = violationColor(v.violation_type);
 
-                {/* Type badge */}
-                <td className="py-3 px-3">
-                  <span className={v.violation_type === "helmet_violation" ? "badge-helmet" : "badge-vest"}>
-                    {v.violation_type === "helmet_violation" ? (
-                      <>
-                        <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
-                          <path d="M2 7.5C2 5.015 3.567 3 5.5 3S9 5.015 9 7.5H2Z"
-                                fill="currentColor" opacity="0.7"/>
-                          <path d="M1.5 7.5H9.5" stroke="currentColor" strokeWidth="1" strokeLinecap="round"/>
-                        </svg>
-                        No Hard Hat
-                      </>
-                    ) : (
-                      <>
-                        <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
-                          <path d="M2 3L5.5 2L9 3V7L5.5 9L2 7V3Z"
-                                stroke="currentColor" strokeWidth="1" strokeLinejoin="round" fill="currentColor" opacity="0.3"/>
-                        </svg>
-                        No Safety Vest
-                      </>
-                    )}
-                  </span>
-                </td>
-
-                {/* Confidence */}
-                <td className="py-3 px-3">
-                  <div className="flex items-center gap-2">
-                    <div className="w-14 h-1 rounded-full overflow-hidden"
-                         style={{ background: "#1e1e30" }}>
-                      <div
-                        className="h-full rounded-full"
-                        style={{
-                          width: `${(v.confidence * 100).toFixed(0)}%`,
-                          background: "#f59e0b",
-                        }}
-                      />
-                    </div>
-                    <span className="text-gray-500 text-xs tabular-nums">
-                      {(v.confidence * 100).toFixed(0)}%
-                    </span>
-                  </div>
-                </td>
-
-                {/* Frame */}
-                <td className="py-3 px-3">
-                  {v.frame_url ? (
-                    <a
-                      href={v.frame_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                      className="text-xs underline transition-colors"
-                      style={{ color: "#60a5fa" }}
+              return (
+                <tr
+                  key={v.id}
+                  ref={(el) => { rowRefs.current[v.id] = el; }}
+                  onClick={() => { onSeek(v.timestamp); onViolationClick(v); }}
+                  className="cursor-pointer transition-colors duration-100"
+                  style={{
+                    borderBottom: "1px solid rgba(30,30,48,0.6)",
+                    backgroundColor: isActive ? "rgba(245,158,11,0.07)" : undefined,
+                    borderLeft: isActive ? `2px solid ${color}` : "2px solid transparent",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isActive) e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.02)";
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isActive) e.currentTarget.style.backgroundColor = "";
+                  }}
+                >
+                  {/* Timestamp */}
+                  <td className="py-3 px-3">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onSeek(v.timestamp); onViolationClick(v); }}
+                      className="flex items-center gap-1.5 font-mono text-xs rounded-lg px-2 py-1 transition-colors"
+                      style={{
+                        background: "rgba(245,158,11,0.08)",
+                        color: "#f59e0b",
+                        border: "1px solid rgba(245,158,11,0.15)",
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(245,158,11,0.15)")}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(245,158,11,0.08)")}
                     >
-                      View
-                    </a>
-                  ) : (
-                    <span style={{ color: "#2a2a40" }} className="text-xs">—</span>
-                  )}
-                </td>
-              </tr>
-            ))}
+                      <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                        <path d="M3 2L8 5L3 8V2Z" fill="currentColor"/>
+                      </svg>
+                      {formatTime(v.timestamp)}
+                    </button>
+                  </td>
+
+                  {/* Type badge */}
+                  <td className="py-3 px-3">
+                    <span
+                      className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium"
+                      style={{
+                        backgroundColor: `${color}18`,
+                        color: color,
+                        border: `1px solid ${color}30`,
+                      }}
+                    >
+                      {violationLabel(v.violation_type)}
+                    </span>
+                  </td>
+
+                  {/* Confidence */}
+                  <td className="py-3 px-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-14 h-1 rounded-full overflow-hidden" style={{ background: "#1e1e30" }}>
+                        <div
+                          className="h-full rounded-full"
+                          style={{ width: `${(v.confidence * 100).toFixed(0)}%`, background: color }}
+                        />
+                      </div>
+                      <span className="text-gray-500 text-xs tabular-nums">
+                        {(v.confidence * 100).toFixed(0)}%
+                      </span>
+                    </div>
+                  </td>
+
+                  {/* Frame */}
+                  <td className="py-3 px-3">
+                    {v.frame_url ? (
+                      <a
+                        href={v.frame_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="text-xs underline transition-colors"
+                        style={{ color: "#60a5fa" }}
+                      >
+                        View
+                      </a>
+                    ) : (
+                      <span style={{ color: "#2a2a40" }} className="text-xs">—</span>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
