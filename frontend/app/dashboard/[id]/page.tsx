@@ -28,6 +28,7 @@ export default function DashboardPage() {
   const playerRef = useRef<VideoPlayerHandle>(null);
   const [videoDuration, setVideoDuration] = useState<number>(0);
   const [reportExpanded, setReportExpanded] = useState(false);
+  const [activeViolationId, setActiveViolationId] = useState<string | null>(null);
 
   const { data: video, isLoading: videoLoading, error: videoError } = useQuery({
     queryKey: ["video", videoId],
@@ -53,6 +54,11 @@ export default function DashboardPage() {
 
   function handleSeek(seconds: number) {
     playerRef.current?.seekTo(seconds);
+  }
+
+  function handleViolationClick(violation: import("@/types").Violation) {
+    setActiveViolationId(violation.id);
+    playerRef.current?.seekTo(violation.timestamp);
   }
 
   /* ── Loading ── */
@@ -89,8 +95,12 @@ export default function DashboardPage() {
     );
   }
 
-  const helmetViolations = violations.filter((v) => v.violation_type === "no_hard_hat");
-  const vestViolations   = violations.filter((v) => v.violation_type === "no_safety_vest");
+  // Build a count per violation type for the summary sidebar
+  const violationCounts = violations.reduce<Record<string, number>>((acc, v) => {
+    acc[v.violation_type] = (acc[v.violation_type] ?? 0) + 1;
+    return acc;
+  }, {});
+  const violationTypes = Object.entries(violationCounts).sort((a, b) => b[1] - a[1]);
 
   const statusStyles: Record<string, { bg: string; border: string; color: string }> = {
     completed: { bg: "rgba(52,211,153,0.08)", border: "rgba(52,211,153,0.2)", color: "#34d399" },
@@ -202,37 +212,28 @@ export default function DashboardPage() {
 
               {/* Violation summary */}
               <div className="card space-y-3">
-                <p className="section-label">Violation Summary</p>
-                <div className="space-y-2.5">
-                  <div className="flex justify-between items-center">
-                    <span className="flex items-center gap-2 text-gray-400 text-sm">
-                      <span className="badge-helmet">
-                        <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                          <path d="M1 7C1 4.79 2.79 3 5 3s4 1.79 4 4H1Z" fill="currentColor" opacity="0.7"/>
-                          <path d="M.5 7h9" stroke="currentColor" strokeWidth="1" strokeLinecap="round"/>
-                        </svg>
-                        Hard Hat
-                      </span>
-                    </span>
-                    <span className="text-white font-bold tabular-nums">{helmetViolations.length}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="flex items-center gap-2 text-gray-400 text-sm">
-                      <span className="badge-vest">
-                        <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                          <path d="M1 2L5 1L9 2V7L5 9L1 7V2Z" stroke="currentColor"
-                                strokeWidth="0.8" fill="currentColor" opacity="0.3" strokeLinejoin="round"/>
-                        </svg>
-                        Safety Vest
-                      </span>
-                    </span>
-                    <span className="text-white font-bold tabular-nums">{vestViolations.length}</span>
-                  </div>
-                  <div className="flex justify-between items-center pt-2"
-                       style={{ borderTop: "1px solid #1e1e30" }}>
-                    <span className="text-gray-500 text-sm">Total</span>
-                    <span className="text-white font-bold tabular-nums">{violations.length}</span>
-                  </div>
+                <p className="section-label">Violation Breakdown</p>
+                <div className="space-y-2">
+                  {violationTypes.length === 0 ? (
+                    <p className="text-gray-600 text-xs">No violations detected</p>
+                  ) : (
+                    violationTypes.map(([type, count]) => {
+                      const label = type.split("_").map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+                      return (
+                        <div key={type} className="flex justify-between items-center">
+                          <span className="text-gray-400 text-xs truncate pr-2">{label}</span>
+                          <span className="text-white font-bold tabular-nums text-sm shrink-0">{count}</span>
+                        </div>
+                      );
+                    })
+                  )}
+                  {violationTypes.length > 0 && (
+                    <div className="flex justify-between items-center pt-2"
+                         style={{ borderTop: "1px solid #1e1e30" }}>
+                      <span className="text-gray-500 text-xs">Total</span>
+                      <span className="text-white font-bold tabular-nums">{violations.length}</span>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -254,10 +255,17 @@ export default function DashboardPage() {
             violations={violations}
             duration={videoDuration || video.duration || 0}
             onSeek={handleSeek}
+            activeViolationId={activeViolationId}
+            onViolationClick={handleViolationClick}
           />
 
           {/* Violations table */}
-          <ViolationsTable violations={violations} onSeek={handleSeek} />
+          <ViolationsTable
+            violations={violations}
+            onSeek={handleSeek}
+            activeViolationId={activeViolationId}
+            onViolationClick={handleViolationClick}
+          />
 
           {/* AI Safety Report */}
           {reportData?.report && (
