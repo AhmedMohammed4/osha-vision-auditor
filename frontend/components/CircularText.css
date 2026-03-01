@@ -1,0 +1,36 @@
+.circular-text {
+  margin: 0 auto;
+  border-radius: 50%;
+  width: 200px;
+  position: relative;
+  height: 200px;
+  font-weight: 900;
+  color: #fff;
+  text-align: center;
+  cursor: pointer;
+  transform-origin: 50% 50%;
+  -webkit-transform-origin: 50% 50%;
+}
+
+.circular-text span {
+  position: absolute;
+  display: inline-block;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  font-size: 24px;
+  transition: all 0.5s cubic-bezier(0, 0, 0, 1);
+}
+
+/* Compact variant for use in the nav bar logo slot */
+.circular-text-nav {
+  width: 48px;
+  height: 48px;
+  margin: 0;
+}
+
+.circular-text-nav span {
+  font-size: 6.5px;
+  letter-spacing: 0;
+}

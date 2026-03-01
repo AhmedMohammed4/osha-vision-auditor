@@ -48,7 +48,7 @@ export default function RiskMeter({ score }: RiskMeterProps) {
           <path
             d="M 10 70 A 54 54 0 0 1 118 70"
             fill="none"
-            stroke="#251212"
+            stroke="rgba(255,255,255,0.08)"
             strokeWidth="10"
             strokeLinecap="round"
           />
