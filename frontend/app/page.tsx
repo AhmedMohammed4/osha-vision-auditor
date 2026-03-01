@@ -11,48 +11,48 @@ const STORY_TABS = [
     id: "problem",
     label: "The Problem",
     content: {
-      heading: "A hackathon question. A real problem behind it.",
-      body: `OSHA requires hard hats and high-visibility vests on every active construction site.
+      heading: "Safety inspections can't cover every shift.",
+      body: `OSHA requires PPE compliance across all active construction and industrial sites. In practice, safety officers conduct walkthroughs once per shift at best. Between those checks, violations occur: equipment comes off, hazards go unaddressed, and incidents happen.
 
-In practice, a safety officer does a walkthrough once a day at best. Between those checks, workers cut corners. Equipment comes off. Incidents happen.
+1,069 construction workers died in the US last year. Most worked in industries where PPE compliance is inconsistently enforced. The gap between what's required and what's actually monitored is where incidents happen.
 
-1,069 construction workers died in the US last year. Most were in industries where PPE violations are common. The gap between required and enforced is where people get hurt.`,
+For large operations with multiple crews and active sites, manual inspection doesn't scale.`,
     },
   },
   {
     id: "idea",
-    label: "Our Idea",
+    label: "Our Approach",
     content: {
-      heading: "We had 72 hours. That was enough to ask the question.",
-      body: `We were at a hackathon. One of us had just finished reading an OSHA fatality report about a worker struck by falling material — no hard hat.
+      heading: "Site cameras already exist. We built the detection layer.",
+      body: `Most industrial and construction sites already have video surveillance. The footage exists, but it isn't being analyzed for safety compliance.
 
-We kept coming back to the same question: cameras are already on these sites. AI can process video in seconds. Why is anyone still relying on a clipboard and a walk-around?
+We built a pipeline that uses AI vision to analyze that footage and flag violations: missing PPE, fall hazards, electrical issues, and more, frame by frame, against the full OSHA 29 CFR 1926 standard.
 
-So we started building. Not a chatbot, not a dashboard with fake metrics — an actual pipeline that watches footage and flags what it finds.`,
+No additional hardware. No manual review. Every violation is timestamped and documented automatically.`,
     },
   },
   {
     id: "built",
     label: "What We Built",
     content: {
-      heading: "Upload a video. Get a report. That's the whole product.",
-      body: `An end-to-end pipeline: upload any worksite video, we sample a frame every 5 seconds and send each through Claude AI Vision, which inspects the full scene against all OSHA 29 CFR 1926 construction safety categories — PPE, fall protection, ladders, scaffolding, electrical, excavation, fire safety, and more.
+      heading: "Upload a video. Get a compliance report.",
+      body: `An end-to-end pipeline: upload any worksite video, and the system samples a frame every two seconds, running each through Claude AI Vision. It checks the full scene against OSHA 29 CFR 1926 construction safety categories including PPE, fall protection, ladders, scaffolding, electrical, excavation, fire safety, and more.
 
-Every violation gets a timestamp. Risk gets scored 0–100. Claude then turns the raw data into a structured OSHA-aligned report with actionable recommendations.
+Every violation gets a timestamp. Risk is scored 0–100. The system generates a structured OSHA-aligned report with corrective recommendations.
 
-It doesn't replace a safety officer. It covers every second between their rounds.`,
+It doesn't replace your safety team. It covers every minute between their rounds.`,
     },
   },
   {
     id: "next",
     label: "What's Next",
     content: {
-      heading: "We built the foundation. The roadmap writes itself.",
-      body: `Live camera feeds with real-time alerts — not post-incident reports. Hard hat color tracking by individual worker. Fall detection. Scaffold proximity warnings. OSHA regulation cross-referencing by job site type.
+      heading: "This is the foundation. The roadmap is straightforward.",
+      body: `Live camera integration with real-time alerts, not just post-shift review. Per-worker hard hat tracking by color. Fall detection. Scaffold proximity monitoring. OSHA regulation lookup by site type and jurisdiction.
 
-Site-wide risk maps that update over the course of a project, not just after a video gets uploaded.
+Site-wide risk dashboards that update continuously over the course of a project, not just when a video gets uploaded.
 
-We built this in 72 hours. We know what version 2 looks like. We just need the time to build it — and people who care enough to use version 1.`,
+The current system handles post-shift compliance review. The next version handles real-time monitoring at scale.`,
     },
   },
 ];
@@ -80,8 +80,8 @@ const STEPS = [
   },
   {
     n: "02",
-    title: "AI scans every second",
-    desc: "Claude AI Vision inspects each frame against OSHA 29 CFR 1926 standards. PPE, fall protection, scaffolding, electrical, and more.",
+    title: "AI scans every frame",
+    desc: "Claude AI Vision inspects each frame against OSHA 29 CFR 1926 standards: PPE, fall protection, scaffolding, electrical, excavation, and more.",
     icon: (
       <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
         <circle cx="11" cy="11" r="8.5" stroke="rgba(255,255,255,0.75)" strokeWidth="1.4"/>
@@ -192,13 +192,13 @@ export default function LandingPage() {
 
           <h1 className="text-4xl sm:text-5xl font-bold tracking-tight leading-[1.12]"
               style={{ color: "#f1f1f1" }}>
-            Every OSHA violation,<br />
-            <span style={{ color: "var(--accent)" }}>caught on camera.</span>
+            Automated OSHA compliance<br />
+            <span style={{ color: "var(--accent)" }}>for industrial worksites.</span>
           </h1>
 
           <p className="text-gray-200 text-base leading-relaxed max-w-lg mx-auto">
-            Upload any construction site footage. Every violation gets flagged,
-            timestamped, and scored. No safety officer required.
+            Upload any worksite video. The system identifies safety violations,
+            timestamps each one, and generates a compliance report in minutes.
           </p>
 
           <div className="flex items-center justify-center pt-2">
@@ -230,10 +230,10 @@ export default function LandingPage() {
       {/* ── STORY ──────────────────────────────────────────────── */}
       <section id="story" className="py-24 px-5 sm:px-8">
         <div className="max-w-4xl mx-auto">
-          <p className="section-label mb-3 text-center">Why we built this</p>
+          <p className="section-label mb-3 text-center">The problem we solve</p>
           <h2 className="text-3xl font-bold text-white mb-10 text-center" style={{ minHeight: "2.5rem" }}>
             <TextType
-              text="A hackathon question that turned into a real thing."
+              text="Built for safety teams managing large industrial operations."
               typingSpeed={45}
               loop={false}
               showCursor={false}
@@ -265,7 +265,7 @@ export default function LandingPage() {
             <BlurText text="How it works" delay={0.06} />
           </p>
           <h2 className="text-3xl font-bold text-white mb-12 text-center">
-            <BlurText text="Three steps. No setup." delay={0.07} />
+            <BlurText text="Three steps." delay={0.07} />
           </h2>
 
           <div className="grid md:grid-cols-3 gap-6">
@@ -346,10 +346,10 @@ export default function LandingPage() {
              style={{ background: "radial-gradient(ellipse at center, rgba(255,255,255,0.03) 0%, transparent 60%)" }} />
         <div className="relative max-w-xl mx-auto space-y-6">
           <h2 className="text-4xl font-bold text-white leading-tight">
-            <BlurText text="If you manage a worksite, run your first audit." delay={0.06} />
+            <BlurText text="Ready to put it to work on your sites?" delay={0.06} />
           </h2>
           <p className="text-gray-300 text-base">
-            <BlurText text="Free account. No credit card. No setup time. Upload a video and get a report in minutes." delay={0.04} stepDuration={0.3} />
+            <BlurText text="Upload a worksite video and get a full OSHA compliance report in minutes." delay={0.04} stepDuration={0.3} />
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link href="/auth?tab=signup" className="btn-primary px-8 py-3 text-sm">
