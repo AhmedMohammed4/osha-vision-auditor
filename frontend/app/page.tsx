@@ -12,7 +12,7 @@ const STORY_TABS = [
     label: "The Problem",
     content: {
       heading: "Safety inspections can't cover every shift.",
-      body: `OSHA requires PPE compliance across all active construction and industrial sites. In practice, safety officers conduct walkthroughs once per shift at best. Between those checks, violations occur — equipment comes off, hazards go unaddressed, and incidents happen.
+      body: `OSHA requires PPE compliance across all active construction and industrial sites. In practice, safety officers conduct walkthroughs once per shift at best. Between those checks, violations occur: equipment comes off, hazards go unaddressed, and incidents happen.
 
 1,069 construction workers died in the US last year. Most worked in industries where PPE compliance is inconsistently enforced. The gap between what's required and what's actually monitored is where incidents happen.
 
@@ -24,9 +24,9 @@ For large operations with multiple crews and active sites, manual inspection doe
     label: "Our Approach",
     content: {
       heading: "Site cameras already exist. We built the detection layer.",
-      body: `Most industrial and construction sites already have video surveillance. The footage exists — it just isn't being analyzed for safety compliance.
+      body: `Most industrial and construction sites already have video surveillance. The footage exists, but it isn't being analyzed for safety compliance.
 
-We built a pipeline that uses AI vision to analyze that footage and flag violations: missing PPE, fall hazards, electrical issues, and more — frame by frame, against the full OSHA 29 CFR 1926 standard.
+We built a pipeline that uses AI vision to analyze that footage and flag violations: missing PPE, fall hazards, electrical issues, and more, frame by frame, against the full OSHA 29 CFR 1926 standard.
 
 No additional hardware. No manual review. Every violation is timestamped and documented automatically.`,
     },
@@ -36,7 +36,7 @@ No additional hardware. No manual review. Every violation is timestamped and doc
     label: "What We Built",
     content: {
       heading: "Upload a video. Get a compliance report.",
-      body: `An end-to-end pipeline: upload any worksite video, and the system samples a frame every two seconds, running each through Claude AI Vision. It checks the full scene against OSHA 29 CFR 1926 construction safety categories — PPE, fall protection, ladders, scaffolding, electrical, excavation, fire safety, and more.
+      body: `An end-to-end pipeline: upload any worksite video, and the system samples a frame every two seconds, running each through Claude AI Vision. It checks the full scene against OSHA 29 CFR 1926 construction safety categories including PPE, fall protection, ladders, scaffolding, electrical, excavation, fire safety, and more.
 
 Every violation gets a timestamp. Risk is scored 0–100. The system generates a structured OSHA-aligned report with corrective recommendations.
 
@@ -48,7 +48,7 @@ It doesn't replace your safety team. It covers every minute between their rounds
     label: "What's Next",
     content: {
       heading: "This is the foundation. The roadmap is straightforward.",
-      body: `Live camera integration with real-time alerts — not just post-shift review. Per-worker hard hat tracking by color. Fall detection. Scaffold proximity monitoring. OSHA regulation lookup by site type and jurisdiction.
+      body: `Live camera integration with real-time alerts, not just post-shift review. Per-worker hard hat tracking by color. Fall detection. Scaffold proximity monitoring. OSHA regulation lookup by site type and jurisdiction.
 
 Site-wide risk dashboards that update continuously over the course of a project, not just when a video gets uploaded.
 
@@ -81,7 +81,7 @@ const STEPS = [
   {
     n: "02",
     title: "AI scans every frame",
-    desc: "Claude AI Vision inspects each frame against OSHA 29 CFR 1926 standards — PPE, fall protection, scaffolding, electrical, excavation, and more.",
+    desc: "Claude AI Vision inspects each frame against OSHA 29 CFR 1926 standards: PPE, fall protection, scaffolding, electrical, excavation, and more.",
     icon: (
       <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
         <circle cx="11" cy="11" r="8.5" stroke="rgba(255,255,255,0.75)" strokeWidth="1.4"/>
@@ -198,7 +198,7 @@ export default function LandingPage() {
 
           <p className="text-gray-200 text-base leading-relaxed max-w-lg mx-auto">
             Upload any worksite video. The system identifies safety violations,
-            timestamps each one, and generates a compliance report — in minutes.
+            timestamps each one, and generates a compliance report in minutes.
           </p>
 
           <div className="flex items-center justify-center pt-2">
