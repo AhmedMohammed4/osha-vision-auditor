@@ -80,25 +80,17 @@ export default function UploadPage() {
 
         {/* Hero */}
         <div className="text-center mb-10 animate-fade-in-up">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border mb-6"
-               style={{ borderColor: "rgba(220,38,38,0.28)", background: "rgba(220,38,38,0.06)" }}>
-            <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: "#dc2626" }} />
-            <span className="text-xs font-semibold tracking-wide" style={{ color: "#f87171" }}>
-              AI-Powered OSHA Compliance
-            </span>
-          </div>
-
           <h1 className="text-4xl font-bold tracking-tight text-white mb-3 leading-tight">
             Run a worksite audit
           </h1>
-          <p className="text-gray-500 text-sm leading-relaxed max-w-sm mx-auto">
+          <p className="text-gray-300 text-sm leading-relaxed max-w-sm mx-auto">
             Drop in any construction video. Claude AI scans every frame for OSHA
             violations, then scores the risk and generates a report.
           </p>
         </div>
 
         {/* Upload card */}
-        <div className="card glow-red animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
+        <div className="card glow-red animate-fade-in-up" style={{ animationDelay: "0.1s", border: "1px solid rgba(255,255,255,0.32)" }}>
           {isActive ? (
             <div className="space-y-4">
                 <div className="flex gap-2 rounded-xl border border-white/10 bg-black/20 p-1 text-xs">
@@ -162,28 +154,28 @@ export default function UploadPage() {
                style={{ animationDelay: "0.2s" }}>
             <span className="flex items-center gap-1.5">
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                <path d="M6 1L11 3.5V8.5L6 11L1 8.5V3.5L6 1Z" stroke="#3d1818" strokeWidth="1" strokeLinejoin="round"/>
+                <path d="M6 1L11 3.5V8.5L6 11L1 8.5V3.5L6 1Z" stroke="#555" strokeWidth="1" strokeLinejoin="round"/>
               </svg>
               Claude Vision AI
             </span>
             <span className="flex items-center gap-1.5">
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                <circle cx="6" cy="6" r="4.5" stroke="#3d1818" strokeWidth="1"/>
-                <path d="M6 3.5V6L7.5 7.5" stroke="#3d1818" strokeWidth="1" strokeLinecap="round"/>
+                <circle cx="6" cy="6" r="4.5" stroke="#555" strokeWidth="1"/>
+                <path d="M6 3.5V6L7.5 7.5" stroke="#555" strokeWidth="1" strokeLinecap="round"/>
               </svg>
               Frame every 5s
             </span>
             <span className="flex items-center gap-1.5">
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                <rect x="1.5" y="2" width="9" height="8" rx="1.5" stroke="#3d1818" strokeWidth="1"/>
-                <path d="M3.5 5H8.5M3.5 7H6.5" stroke="#3d1818" strokeWidth="1" strokeLinecap="round"/>
+                <rect x="1.5" y="2" width="9" height="8" rx="1.5" stroke="#555" strokeWidth="1"/>
+                <path d="M3.5 5H8.5M3.5 7H6.5" stroke="#555" strokeWidth="1" strokeLinecap="round"/>
               </svg>
               Claude AI report
             </span>
             <span className="flex items-center gap-1.5">
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                <path d="M6 1.5L10 4V8L6 10.5L2 8V4L6 1.5Z" stroke="#3d1818" strokeWidth="1" strokeLinejoin="round"/>
-                <path d="M4 6L5.5 7.5L8.5 4.5" stroke="#3d1818" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M6 1.5L10 4V8L6 10.5L2 8V4L6 1.5Z" stroke="#555" strokeWidth="1" strokeLinejoin="round"/>
+                <path d="M4 6L5.5 7.5L8.5 4.5" stroke="#555" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
               OSHA framework
             </span>
