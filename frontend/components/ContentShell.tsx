@@ -6,7 +6,7 @@ export default function ContentShell({ children }: { children: React.ReactNode }
   const pathname = usePathname();
 
   // These pages manage their own contained card layout.
-  const noShell = ["/", "/history", "/results"];
+  const noShell = ["/", "/history", "/results", "/upload"];
   if (noShell.includes(pathname)) return <>{children}</>;
 
   return (
