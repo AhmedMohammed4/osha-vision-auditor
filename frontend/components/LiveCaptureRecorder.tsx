@@ -45,6 +45,7 @@ export default function LiveCaptureRecorder({ onFileReady, onReset, disabled = f
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [liveViolations, setLiveViolations] = useState<LiveViolation[]>([]);
   const [analysisStatus, setAnalysisStatus] = useState("Live analysis starts when recording begins.");
+  const [analysisSummary, setAnalysisSummary] = useState("The live monitor will separate non-worksite scenes, clear scans, and analysis failures.");
   const [lastAnalyzedAt, setLastAnalyzedAt] = useState<number | null>(null);
 
   useEffect(() => {
@@ -119,6 +120,7 @@ export default function LiveCaptureRecorder({ onFileReady, onReset, disabled = f
 
     analysisInFlightRef.current = true;
     setAnalysisStatus("AI is checking the live camera feed...");
+    setAnalysisSummary("Reviewing the latest frame.");
 
     try {
       const result = await analyzeFrame(frameBlob, recordingSecondsRef.current);
@@ -130,14 +132,23 @@ export default function LiveCaptureRecorder({ onFileReady, onReset, disabled = f
           return merged.slice(0, 6);
         });
         setAnalysisStatus(`${result.violations.length} live issue${result.violations.length === 1 ? "" : "s"} flagged.`);
+        setAnalysisSummary(result.summary);
+      } else if (result.status === "non_worksite") {
+        setAnalysisStatus("Current frame looks like a non-worksite scene.");
+        setAnalysisSummary(result.summary);
+      } else if (result.status === "analysis_failed") {
+        setAnalysisStatus("Live analysis is temporarily unavailable.");
+        setAnalysisSummary(result.summary);
       } else {
         setAnalysisStatus("No visible OSHA issues in the latest live scan.");
+        setAnalysisSummary(result.summary);
       }
     } catch (err: any) {
-      setAnalysisStatus(
+      setAnalysisStatus("Live analysis is temporarily unavailable.");
+      setAnalysisSummary(
         err?.response?.data?.detail ||
         err?.message ||
-        "Live analysis is temporarily unavailable."
+        "The backend could not analyze the current frame."
       );
     } finally {
       analysisInFlightRef.current = false;
@@ -167,6 +178,7 @@ export default function LiveCaptureRecorder({ onFileReady, onReset, disabled = f
       setLiveViolations([]);
       setLastAnalyzedAt(null);
       setAnalysisStatus("Starting live analysis...");
+      setAnalysisSummary("Waiting for the first live frame.");
 
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "environment" },
@@ -198,6 +210,7 @@ export default function LiveCaptureRecorder({ onFileReady, onReset, disabled = f
         setRecordedVideoUrl(localUrl);
         setCaptureState("recorded");
         setAnalysisStatus("Live capture saved. You can upload the full clip for a complete report.");
+        setAnalysisSummary("Live status reflects only sampled frames during recording.");
         onFileReady(file);
       };
 
@@ -229,6 +242,7 @@ export default function LiveCaptureRecorder({ onFileReady, onReset, disabled = f
     setLiveViolations([]);
     setLastAnalyzedAt(null);
     setAnalysisStatus("Live analysis starts when recording begins.");
+    setAnalysisSummary("The live monitor will separate non-worksite scenes, clear scans, and analysis failures.");
     onReset?.();
   }
 
@@ -301,6 +315,7 @@ export default function LiveCaptureRecorder({ onFileReady, onReset, disabled = f
         </div>
 
         <p className="mt-2 text-xs text-gray-400">{analysisStatus}</p>
+        <p className="mt-1 text-[11px] text-gray-500">{analysisSummary}</p>
 
         {liveViolations.length > 0 ? (
           <div className="mt-3 space-y-2">
@@ -332,7 +347,9 @@ export default function LiveCaptureRecorder({ onFileReady, onReset, disabled = f
           </div>
         ) : (
           <p className="mt-3 text-[11px] text-gray-600">
-            Start recording to begin live checks. The saved video can still be uploaded afterward for the full timeline and report.
+            {captureState === "recording"
+              ? "No live issues are currently listed. The status above explains whether the latest frame looked clear, non-worksite, or unavailable."
+              : "Start recording to begin live checks. The saved video can still be uploaded afterward for the full timeline and report."}
           </p>
         )}
       </div>

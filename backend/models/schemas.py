@@ -67,4 +67,9 @@ class LiveViolation(BaseModel):
 class LiveFrameAnalysisResponse(BaseModel):
     """Response for a single live frame analysis request."""
     timestamp: float
+    status: str
+    scene_context: str
+    scene_confidence: float
+    summary: str
+    error: Optional[str] = None
     violations: List[LiveViolation]

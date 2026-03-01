@@ -153,16 +153,21 @@ async def analyze_frame_endpoint(
     if frame is None:
         raise HTTPException(status_code=400, detail="Could not decode uploaded frame.")
 
-    from worker.detector import detect_violations  # noqa: E402
+    from worker.detector import analyze_live_frame  # noqa: E402
 
     try:
-        violations = detect_violations(frame, timestamp)
+        analysis = analyze_live_frame(frame, timestamp)
     except Exception as exc:
         logger.error(f"Live frame analysis failed at t={timestamp:.1f}s: {exc}")
         raise HTTPException(status_code=503, detail=f"Live frame analysis failed: {str(exc)}")
 
     return LiveFrameAnalysisResponse(
         timestamp=timestamp,
+        status=str(analysis.get("status", "analysis_failed")),
+        scene_context=str(analysis.get("scene_context", "unclear")),
+        scene_confidence=float(analysis.get("scene_confidence", 0.0)),
+        summary=str(analysis.get("summary", "")),
+        error=analysis.get("error"),
         violations=[
             LiveViolation(
                 timestamp=timestamp,
@@ -172,7 +177,7 @@ async def analyze_frame_endpoint(
                 osha_citation=item.get("osha_citation"),
                 osha_reference_text=item.get("osha_reference_text"),
             )
-            for item in violations
+            for item in analysis.get("violations", [])
             if isinstance(item, dict)
         ],
     )

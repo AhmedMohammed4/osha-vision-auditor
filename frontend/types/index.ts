@@ -42,5 +42,10 @@ export interface LiveViolation {
 
 export interface LiveFrameAnalysisResponse {
   timestamp: number;
+  status: "issues_detected" | "clear" | "non_worksite" | "analysis_failed";
+  scene_context: "construction" | "non_construction" | "unclear";
+  scene_confidence: number;
+  summary: string;
+  error: string | null;
   violations: LiveViolation[];
 }
