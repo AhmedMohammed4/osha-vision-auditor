@@ -6,6 +6,7 @@ import NavBar from "@/components/NavBar";
 import BeamsWrapper from "@/components/BeamsWrapper";
 import BeamsErrorBoundary from "@/components/BeamsErrorBoundary";
 import PageTransition from "@/components/PageTransition";
+import ContentShell from "@/components/ContentShell";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], variable: "--font-space-grotesk" });
@@ -52,9 +53,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Providers>
           <NavBar />
           <main className="max-w-7xl mx-auto px-5 sm:px-8 py-10">
-            <PageTransition>
-              {children}
-            </PageTransition>
+            <ContentShell>
+              <PageTransition>
+                {children}
+              </PageTransition>
+            </ContentShell>
           </main>
         </Providers>
 
