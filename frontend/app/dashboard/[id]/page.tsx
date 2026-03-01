@@ -112,7 +112,7 @@ export default function DashboardPage() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-5 animate-fade-in-up"
-         style={{ isolation: "isolate", "--bg-card": "#000000", "--bg-card-hover": "#050505" } as React.CSSProperties}>
+         style={{ isolation: "isolate", background: "var(--bg-base)", "--bg-card": "#000000", "--bg-card-hover": "#050505" } as React.CSSProperties}>
 
       {/* Page header */}
       <div className="flex items-start justify-between gap-4">
