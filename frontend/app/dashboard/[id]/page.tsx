@@ -15,8 +15,8 @@ const VideoPlayer = dynamic(() => import("@/components/VideoPlayer"), {
   ssr: false,
   loading: () => (
     <div className="aspect-video rounded-2xl flex items-center justify-center"
-         style={{ background: "#0e0e0e", border: "1px solid #251212" }}>
-      <p className="text-gray-600 text-sm">Loading player...</p>
+         style={{ background: "#0e0e0e", border: "1px solid rgba(255,255,255,0.07)" }}>
+      <p className="text-gray-400 text-sm">Loading player...</p>
     </div>
   ),
 });
@@ -104,7 +104,7 @@ export default function DashboardPage() {
 
   const statusStyles: Record<string, { bg: string; border: string; color: string }> = {
     completed: { bg: "rgba(52,211,153,0.08)", border: "rgba(52,211,153,0.2)", color: "#34d399" },
-    processing: { bg: "rgba(220,38,38,0.08)", border: "rgba(220,38,38,0.22)", color: "#f87171" },
+    processing: { bg: "rgba(255,255,255,0.05)", border: "rgba(255,255,255,0.12)", color: "#d0d0d0" },
     failed:   { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.2)", color: "#ef4444" },
     uploaded: { bg: "rgba(107,114,128,0.1)", border: "rgba(107,114,128,0.2)", color: "#9ca3af" },
   };
@@ -194,8 +194,8 @@ export default function DashboardPage() {
                 />
               ) : (
                 <div className="aspect-video rounded-2xl flex items-center justify-center"
-                     style={{ background: "#0e0e0e", border: "1px solid #251212" }}>
-                  <p className="text-gray-600 text-sm">No video URL available</p>
+                     style={{ background: "#0e0e0e", border: "1px solid rgba(255,255,255,0.07)" }}>
+                  <p className="text-gray-400 text-sm">No video URL available</p>
                 </div>
               )}
               <p className="text-gray-700 text-xs text-center">
@@ -229,8 +229,8 @@ export default function DashboardPage() {
                   )}
                   {violationTypes.length > 0 && (
                     <div className="flex justify-between items-center pt-2"
-                         style={{ borderTop: "1px solid #251212" }}>
-                      <span className="text-gray-500 text-xs">Total</span>
+                         style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}>
+                      <span className="text-gray-400 text-xs">Total</span>
                       <span className="text-white font-bold tabular-nums">{violations.length}</span>
                     </div>
                   )}
@@ -297,7 +297,7 @@ export default function DashboardPage() {
 
               {reportExpanded && (
                 <div className="mt-3 rounded-xl p-4"
-                     style={{ background: "#080808", border: "1px solid #251212" }}>
+                     style={{ background: "#080808", border: "1px solid rgba(255,255,255,0.07)" }}>
                   <pre className="text-gray-300 text-sm whitespace-pre-wrap font-sans leading-relaxed">
                     {reportData.report}
                   </pre>
