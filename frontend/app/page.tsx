@@ -265,7 +265,7 @@ export default function LandingPage() {
             <BlurText text="How it works" delay={0.06} />
           </p>
           <h2 className="text-3xl font-bold text-white mb-12 text-center">
-            <BlurText text="Three steps. No setup." delay={0.07} />
+            <BlurText text="Three steps." delay={0.07} />
           </h2>
 
           <div className="grid md:grid-cols-3 gap-6">
