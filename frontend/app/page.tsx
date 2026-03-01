@@ -230,7 +230,7 @@ export default function LandingPage() {
       {/* ── STORY ──────────────────────────────────────────────── */}
       <section id="story" className="py-24 px-5 sm:px-8">
         <div className="max-w-4xl mx-auto">
-          <p className="section-label mb-3 text-center">Why we built this</p>
+          <p className="section-label mb-3 text-center">The problem we solve</p>
           <h2 className="text-3xl font-bold text-white mb-10 text-center" style={{ minHeight: "2.5rem" }}>
             <TextType
               text="Built for safety teams managing large industrial operations."
@@ -349,7 +349,7 @@ export default function LandingPage() {
             <BlurText text="Ready to put it to work on your sites?" delay={0.06} />
           </h2>
           <p className="text-gray-300 text-base">
-            <BlurText text="Upload a worksite video and get a full OSHA compliance report in minutes. No setup required." delay={0.04} stepDuration={0.3} />
+            <BlurText text="Upload a worksite video and get a full OSHA compliance report in minutes." delay={0.04} stepDuration={0.3} />
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link href="/auth?tab=signup" className="btn-primary px-8 py-3 text-sm">
