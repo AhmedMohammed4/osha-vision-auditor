@@ -1,7 +1,7 @@
 """Pydantic schemas for request/response models."""
 
 from enum import Enum
-from typing import Optional
+from typing import List, Optional
 from pydantic import BaseModel
 
 
@@ -52,3 +52,19 @@ class ReportResponse(BaseModel):
     """Response for report generation endpoint."""
     video_id: str
     report: str
+
+
+class LiveViolation(BaseModel):
+    """Represents a violation detected from a live-capture frame."""
+    timestamp: float
+    violation_type: str
+    confidence: float
+    description: Optional[str] = None
+    osha_citation: Optional[str] = None
+    osha_reference_text: Optional[str] = None
+
+
+class LiveFrameAnalysisResponse(BaseModel):
+    """Response for a single live frame analysis request."""
+    timestamp: float
+    violations: List[LiveViolation]

@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { analyzeFrame } from "@/lib/api";
+import type { LiveViolation } from "@/types";
 
 interface LiveCaptureRecorderProps {
   onFileReady: (file: File) => void;
@@ -15,10 +17,18 @@ const MIME_TYPES = [
   "video/webm;codecs=vp8,opus",
   "video/webm",
 ];
+const LIVE_ANALYSIS_INTERVAL_MS = 4000;
 
 function getSupportedMimeType(): string {
   if (typeof MediaRecorder === "undefined") return "";
   return MIME_TYPES.find((type) => MediaRecorder.isTypeSupported(type)) || "";
+}
+
+function formatViolationLabel(value: string): string {
+  return value
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
 }
 
 export default function LiveCaptureRecorder({ onFileReady, onReset, disabled = false }: LiveCaptureRecorderProps) {
@@ -26,20 +36,44 @@ export default function LiveCaptureRecorder({ onFileReady, onReset, disabled = f
   const activeStreamRef = useRef<MediaStream | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const analysisInFlightRef = useRef(false);
+  const recordingSecondsRef = useRef(0);
 
   const [captureState, setCaptureState] = useState<CaptureState>("idle");
   const [error, setError] = useState<string | null>(null);
   const [recordedVideoUrl, setRecordedVideoUrl] = useState<string | null>(null);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const [liveViolations, setLiveViolations] = useState<LiveViolation[]>([]);
+  const [analysisStatus, setAnalysisStatus] = useState("Live analysis starts when recording begins.");
+  const [lastAnalyzedAt, setLastAnalyzedAt] = useState<number | null>(null);
 
   useEffect(() => {
     let timerId: ReturnType<typeof setInterval> | null = null;
     if (captureState === "recording") {
-      timerId = setInterval(() => setRecordingSeconds((s) => s + 1), 1000);
+      timerId = setInterval(() => {
+        setRecordingSeconds((s) => {
+          const nextValue = s + 1;
+          recordingSecondsRef.current = nextValue;
+          return nextValue;
+        });
+      }, 1000);
     }
     return () => {
       if (timerId) clearInterval(timerId);
     };
+  }, [captureState]);
+
+  useEffect(() => {
+    if (captureState !== "recording") return;
+
+    void analyzeCurrentFrame();
+
+    const analysisTimer = setInterval(() => {
+      void analyzeCurrentFrame();
+    }, LIVE_ANALYSIS_INTERVAL_MS);
+
+    return () => clearInterval(analysisTimer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [captureState]);
 
   useEffect(() => {
@@ -54,6 +88,59 @@ export default function LiveCaptureRecorder({ onFileReady, onReset, disabled = f
     if (activeStreamRef.current) {
       activeStreamRef.current.getTracks().forEach((track) => track.stop());
       activeStreamRef.current = null;
+    }
+  }
+
+  function capturePreviewFrame(): Promise<Blob | null> {
+    const video = videoPreviewRef.current;
+    if (!video || video.videoWidth === 0 || video.videoHeight === 0) {
+      return Promise.resolve(null);
+    }
+
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const context = canvas.getContext("2d");
+    if (!context) {
+      return Promise.resolve(null);
+    }
+
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    return new Promise((resolve) => {
+      canvas.toBlob(resolve, "image/jpeg", 0.82);
+    });
+  }
+
+  async function analyzeCurrentFrame() {
+    if (analysisInFlightRef.current || captureState !== "recording") return;
+
+    const frameBlob = await capturePreviewFrame();
+    if (!frameBlob) return;
+
+    analysisInFlightRef.current = true;
+    setAnalysisStatus("AI is checking the live camera feed...");
+
+    try {
+      const result = await analyzeFrame(frameBlob, recordingSecondsRef.current);
+      setLastAnalyzedAt(result.timestamp);
+
+      if (result.violations.length > 0) {
+        setLiveViolations((existing) => {
+          const merged = [...result.violations, ...existing];
+          return merged.slice(0, 6);
+        });
+        setAnalysisStatus(`${result.violations.length} live issue${result.violations.length === 1 ? "" : "s"} flagged.`);
+      } else {
+        setAnalysisStatus("No visible OSHA issues in the latest live scan.");
+      }
+    } catch (err: any) {
+      setAnalysisStatus(
+        err?.response?.data?.detail ||
+        err?.message ||
+        "Live analysis is temporarily unavailable."
+      );
+    } finally {
+      analysisInFlightRef.current = false;
     }
   }
 
@@ -76,6 +163,10 @@ export default function LiveCaptureRecorder({ onFileReady, onReset, disabled = f
         URL.revokeObjectURL(recordedVideoUrl);
         setRecordedVideoUrl(null);
       }
+
+      setLiveViolations([]);
+      setLastAnalyzedAt(null);
+      setAnalysisStatus("Starting live analysis...");
 
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "environment" },
@@ -106,10 +197,12 @@ export default function LiveCaptureRecorder({ onFileReady, onReset, disabled = f
         const localUrl = URL.createObjectURL(blob);
         setRecordedVideoUrl(localUrl);
         setCaptureState("recorded");
+        setAnalysisStatus("Live capture saved. You can upload the full clip for a complete report.");
         onFileReady(file);
       };
 
       recorder.start(1000);
+      recordingSecondsRef.current = 0;
       setRecordingSeconds(0);
       setCaptureState("recording");
     } catch (err: any) {
@@ -129,9 +222,13 @@ export default function LiveCaptureRecorder({ onFileReady, onReset, disabled = f
       URL.revokeObjectURL(recordedVideoUrl);
     }
     setRecordedVideoUrl(null);
+    recordingSecondsRef.current = 0;
     setRecordingSeconds(0);
     setCaptureState("idle");
     setError(null);
+    setLiveViolations([]);
+    setLastAnalyzedAt(null);
+    setAnalysisStatus("Live analysis starts when recording begins.");
     onReset?.();
   }
 
@@ -190,8 +287,55 @@ export default function LiveCaptureRecorder({ onFileReady, onReset, disabled = f
       </div>
 
       <p className="text-xs text-gray-600">
-        Live capture uses your device camera and saves a local clip before upload.
+        Live capture scans the camera feed every few seconds while recording, then saves the full clip for a deeper report.
       </p>
+
+      <div className="rounded-xl border border-white/10 bg-black/20 p-3">
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-xs font-medium text-gray-300">Live AI monitor</p>
+          {lastAnalyzedAt !== null && (
+            <span className="text-[11px] text-gray-500">
+              Last scan at {Math.round(lastAnalyzedAt)}s
+            </span>
+          )}
+        </div>
+
+        <p className="mt-2 text-xs text-gray-400">{analysisStatus}</p>
+
+        {liveViolations.length > 0 ? (
+          <div className="mt-3 space-y-2">
+            {liveViolations.map((violation, index) => (
+              <div
+                key={`${violation.timestamp}-${violation.violation_type}-${index}`}
+                className="rounded-lg border border-red-500/20 bg-red-500/5 px-3 py-2"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-semibold text-red-300">
+                    {formatViolationLabel(violation.violation_type)}
+                  </span>
+                  <span className="text-[11px] text-red-200/80">
+                    {Math.round(violation.timestamp)}s
+                  </span>
+                </div>
+                {violation.description && (
+                  <p className="mt-1 text-[11px] leading-relaxed text-red-100/80">
+                    {violation.description}
+                  </p>
+                )}
+                {violation.osha_citation && (
+                  <p className="mt-1 text-[11px] text-red-200/70">
+                    {violation.osha_citation}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="mt-3 text-[11px] text-gray-600">
+            Start recording to begin live checks. The saved video can still be uploaded afterward for the full timeline and report.
+          </p>
+        )}
+      </div>
 
       {error && <p className="text-xs text-red-400">{error}</p>}
     </div>

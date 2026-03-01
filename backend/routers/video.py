@@ -7,9 +7,19 @@ import os
 import uuid
 from typing import List
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException, UploadFile, File
+import cv2
+import numpy as np
+from fastapi import APIRouter, BackgroundTasks, HTTPException, UploadFile, File, Form
 
-from ..models.schemas import UploadResponse, ProcessResponse, Video, Violation, VideoStatus
+from ..models.schemas import (
+    LiveFrameAnalysisResponse,
+    LiveViolation,
+    ProcessResponse,
+    UploadResponse,
+    Video,
+    Violation,
+    VideoStatus,
+)
 from ..services.supabase_client import get_supabase
 from ..services.storage import upload_video
 
@@ -121,6 +131,51 @@ async def process_video_endpoint(video_id: str, background_tasks: BackgroundTask
     logger.info(f"Pipeline queued for video: {video_id}")
 
     return ProcessResponse(video_id=video_id, message="Processing started.")
+
+
+@router.post("/analyze-frame", response_model=LiveFrameAnalysisResponse)
+async def analyze_frame_endpoint(
+    image: UploadFile = File(...),
+    timestamp: float = Form(0.0),
+) -> LiveFrameAnalysisResponse:
+    """
+    Analyze a single still frame from live capture.
+
+    This is used by the browser during active recording so users can see
+    likely OSHA issues while the camera is still rolling.
+    """
+    image_bytes = await image.read()
+    if not image_bytes:
+        raise HTTPException(status_code=400, detail="Uploaded frame is empty.")
+
+    frame_buffer = np.frombuffer(image_bytes, dtype=np.uint8)
+    frame = cv2.imdecode(frame_buffer, cv2.IMREAD_COLOR)
+    if frame is None:
+        raise HTTPException(status_code=400, detail="Could not decode uploaded frame.")
+
+    from worker.detector import detect_violations  # noqa: E402
+
+    try:
+        violations = detect_violations(frame, timestamp)
+    except Exception as exc:
+        logger.error(f"Live frame analysis failed at t={timestamp:.1f}s: {exc}")
+        raise HTTPException(status_code=503, detail=f"Live frame analysis failed: {str(exc)}")
+
+    return LiveFrameAnalysisResponse(
+        timestamp=timestamp,
+        violations=[
+            LiveViolation(
+                timestamp=timestamp,
+                violation_type=item.get("violation_type", "unknown"),
+                confidence=float(item.get("confidence", 0.0)),
+                description=item.get("description"),
+                osha_citation=item.get("osha_citation"),
+                osha_reference_text=item.get("osha_reference_text"),
+            )
+            for item in violations
+            if isinstance(item, dict)
+        ],
+    )
 
 
 @router.get("/video/{video_id}", response_model=Video)

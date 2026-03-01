@@ -1,5 +1,11 @@
 import axios from "axios";
-import type { Video, Violation, UploadResponse, ReportResponse } from "@/types";
+import type {
+  LiveFrameAnalysisResponse,
+  ReportResponse,
+  UploadResponse,
+  Video,
+  Violation,
+} from "@/types";
 
 const apiClient = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000",
@@ -63,6 +69,28 @@ export async function getViolations(videoId: string): Promise<Violation[]> {
 export async function getReport(videoId: string): Promise<ReportResponse> {
   const { data } = await apiClient.get<ReportResponse>(
     `/api/video/${videoId}/report`
+  );
+  return data;
+}
+
+/**
+ * Analyze a single live-capture frame while recording.
+ */
+export async function analyzeFrame(
+  image: Blob,
+  timestamp: number
+): Promise<LiveFrameAnalysisResponse> {
+  const formData = new FormData();
+  formData.append("image", image, `live-frame-${Math.round(timestamp * 1000)}.jpg`);
+  formData.append("timestamp", String(timestamp));
+
+  const { data } = await apiClient.post<LiveFrameAnalysisResponse>(
+    "/api/analyze-frame",
+    formData,
+    {
+      headers: { "Content-Type": "multipart/form-data" },
+      timeout: 60_000,
+    }
   );
   return data;
 }

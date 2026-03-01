@@ -84,8 +84,8 @@ export default function UploadPage() {
             Run a worksite audit
           </h1>
           <p className="text-gray-300 text-sm leading-relaxed max-w-sm mx-auto">
-            Drop in any construction video. Claude AI scans every frame for OSHA
-            violations, then scores the risk and generates a report.
+            Upload a saved video or use live capture. In live mode, OSHA checks
+            start while you record, then you can run a full report on the saved clip.
           </p>
         </div>
 
@@ -120,13 +120,23 @@ export default function UploadPage() {
                 <LiveCaptureRecorder onFileReady={setSelectedFile} onReset={() => setSelectedFile(null)} disabled={false} />
               )}
               
-              {selectedFile && (
+              {selectedFile && inputMode === "upload" && (
                 <button onClick={handleStartAnalysis} className="btn-primary w-full py-3 text-sm">
                   <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                     <circle cx="8" cy="8" r="7" stroke="currentColor" strokeWidth="1.5"/>
                     <path d="M6 5.5L11 8L6 10.5V5.5Z" fill="currentColor"/>
                   </svg>
                   Analyze for OSHA Violations
+                </button>
+              )}
+
+              {selectedFile && inputMode === "live" && (
+                <button onClick={handleStartAnalysis} className="btn-primary w-full py-3 text-sm">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <circle cx="8" cy="8" r="7" stroke="currentColor" strokeWidth="1.5"/>
+                    <path d="M6 5.5L11 8L6 10.5V5.5Z" fill="currentColor"/>
+                  </svg>
+                  Run full report on saved clip
                 </button>
               )}
 
@@ -163,7 +173,7 @@ export default function UploadPage() {
                 <circle cx="6" cy="6" r="4.5" stroke="#555" strokeWidth="1"/>
                 <path d="M6 3.5V6L7.5 7.5" stroke="#555" strokeWidth="1" strokeLinecap="round"/>
               </svg>
-              Frame every 5s
+              Live scans every few seconds
             </span>
             <span className="flex items-center gap-1.5">
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none">

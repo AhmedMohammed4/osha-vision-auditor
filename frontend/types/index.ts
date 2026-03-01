@@ -30,3 +30,17 @@ export interface ReportResponse {
   video_id: string;
   report: string;
 }
+
+export interface LiveViolation {
+  timestamp: number;
+  violation_type: string;
+  confidence: number;
+  description: string | null;
+  osha_citation: string | null;
+  osha_reference_text: string | null;
+}
+
+export interface LiveFrameAnalysisResponse {
+  timestamp: number;
+  violations: LiveViolation[];
+}
