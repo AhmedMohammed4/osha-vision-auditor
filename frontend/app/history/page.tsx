@@ -60,6 +60,7 @@ export default function HistoryPage() {
 
   return (
     <div className="max-w-4xl mx-auto">
+      <div className="rounded-2xl p-8" style={{ background: "#0f0f0f", border: "1px solid rgba(255,255,255,0.07)" }}>
       <div className="mb-8 text-center">
         <p className="section-label mb-2">Audit history</p>
         <h1 className="text-3xl font-bold text-white">Your past audits</h1>
@@ -156,6 +157,7 @@ export default function HistoryPage() {
           ))}
         </div>
       )}
+      </div>
     </div>
   );
 }
