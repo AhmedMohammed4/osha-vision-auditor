@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import React, { useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
@@ -111,7 +111,8 @@ export default function DashboardPage() {
   const statusStyle = statusStyles[video.status] ?? statusStyles.uploaded;
 
   return (
-    <div className="max-w-6xl mx-auto space-y-5 animate-fade-in-up">
+    <div className="max-w-6xl mx-auto space-y-5 animate-fade-in-up"
+         style={{ isolation: "isolate", "--bg-card": "#000000", "--bg-card-hover": "#050505" } as React.CSSProperties}>
 
       {/* Page header */}
       <div className="flex items-start justify-between gap-4">

@@ -82,6 +82,9 @@
     border: 1px solid var(--border);
     @apply rounded-2xl p-5;
     transition: border-color 0.2s ease;
+    isolation: isolate;
+    position: relative;
+    z-index: 20;
   }
 
   .card-hover {
@@ -89,6 +92,7 @@
     border: 1px solid var(--border);
     @apply rounded-2xl p-5;
     transition: border-color 0.2s ease, background-color 0.2s ease;
+    isolation: isolate;
   }
 
   .card-hover:hover {
@@ -140,6 +144,9 @@
     background-color: var(--bg-card);
     border: 1px solid var(--border);
     @apply rounded-2xl p-4 flex flex-col gap-1;
+    isolation: isolate;
+    position: relative;
+    z-index: 20;
   }
 
   .section-label {

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
+import type { TargetAndTransition } from "motion/react";
 
 interface BlurTextProps {
   text: string;
@@ -77,8 +78,8 @@ export default function BlurText({
       {elements.map((el, i) => (
         <motion.span
           key={i}
-          initial={from}
-          animate={isInView ? to : from}
+          initial={from as TargetAndTransition}
+          animate={(isInView ? to : from) as TargetAndTransition}
           transition={{
             duration: stepDuration,
             delay: i * delay,

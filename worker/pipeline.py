@@ -29,8 +29,8 @@ def process_video(video_id: str) -> None:
         1. Mark video as 'processing' in DB.
         2. Download video bytes from Supabase Storage.
         3. Write to a temporary file for OpenCV.
-        4. Extract 1 frame every 2 seconds using OpenCV.
-        5. Run Claude Vision detection on each sampled frame.
+        4. Sample 1 frame per second using OpenCV.
+        5. Run Claude Vision detection on each sampled frame (sequential).
         6. Upload violation frames to Supabase Storage.
         7. Bulk insert violations into DB.
         8. Compute risk score.
@@ -80,7 +80,7 @@ def process_video(video_id: str) -> None:
         fps = cap.get(cv2.CAP_PROP_FPS) or 25.0
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         duration = total_frames / fps if fps > 0 else 0.0
-        frame_interval = max(1, int(round(fps * 5)))  # sample every ~5 seconds
+        frame_interval = max(1, int(fps))  # 1 frame per second
 
         logger.info(
             f"[{video_id}] Video metadata: fps={fps:.2f}, "
@@ -94,41 +94,27 @@ def process_video(video_id: str) -> None:
         frame_number = 0
         sampled_count = 0
 
-        # Step 5 — Frame extraction and Claude Vision detection loop
-        logger.info(f"[{video_id}] Starting frame analysis at 1 frame per 2s...")
-
+        # Steps 4/5 — Sample at 1fps and run Claude Vision detection sequentially
         while True:
             ret, frame = cap.read()
             if not ret:
                 break
-
             if frame_number % frame_interval == 0:
                 timestamp = frame_number / fps
                 sampled_count += 1
-
-                # Detect violations with Claude Vision
                 frame_violations = detect_violations(frame, timestamp)
-
                 if frame_violations:
-                    # Step 6 — Upload violation frame to Storage
-                    frame_url = _encode_and_upload_frame(
-                        frame, video_id, timestamp, upload_frame
-                    )
-                    # Attach metadata to each violation
+                    frame_url = _encode_and_upload_frame(frame, video_id, timestamp, upload_frame)
                     for v in frame_violations:
                         v["timestamp"] = timestamp
                         v["frame_url"] = frame_url
                         v["video_id"] = video_id
-
                     all_violations.extend(frame_violations)
-                    logger.debug(
-                        f"[{video_id}] t={timestamp:.1f}s: "
-                        f"{len(frame_violations)} violation(s)"
-                    )
-
+                    logger.debug(f"[{video_id}] t={timestamp:.1f}s: {len(frame_violations)} violation(s)")
             frame_number += 1
 
         cap.release()
+
         logger.info(
             f"[{video_id}] Analysis complete. "
             f"Sampled {sampled_count} frames, found {len(all_violations)} violations."

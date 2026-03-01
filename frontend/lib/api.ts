@@ -32,6 +32,14 @@ export async function startProcessing(videoId: string): Promise<void> {
 }
 
 /**
+ * Fetch all video records, most recent first.
+ */
+export async function getVideos(): Promise<Video[]> {
+  const { data } = await apiClient.get<Video[]>("/api/videos");
+  return data;
+}
+
+/**
  * Fetch the current state of a video record.
  */
 export async function getVideo(videoId: string): Promise<Video> {
