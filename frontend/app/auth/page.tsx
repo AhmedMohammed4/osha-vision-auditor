@@ -65,15 +65,15 @@ export default function AuthPage() {
 
       {/* Left panel — brand / story */}
       <div className="hidden lg:flex flex-col justify-between p-10 relative overflow-hidden"
-           style={{ background: "#0b0b0b", borderRight: "1px solid #251212" }}>
-        {/* Subtle red gradient blob */}
+           style={{ background: "#0b0b0b", borderRight: "1px solid rgba(255,255,255,0.07)" }}>
+        {/* Subtle gradient blob */}
         <div className="absolute -top-20 -left-20 w-64 h-64 rounded-full pointer-events-none"
-             style={{ background: "radial-gradient(circle, rgba(220,38,38,0.07) 0%, transparent 70%)" }} />
+             style={{ background: "radial-gradient(circle, rgba(255,255,255,0.04) 0%, transparent 70%)" }} />
 
         <div>
           <Link href="/" className="flex items-center gap-2.5 mb-16">
             <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
-                 style={{ background: "#dc2626", boxShadow: "0 0 12px rgba(220,38,38,0.35)" }}>
+                 style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.18)", boxShadow: "none" }}>
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
                 <path d="M7 1L13 4.5V9.5L7 13L1 9.5V4.5L7 1Z" fill="#fff"/>
                 <circle cx="7" cy="7" r="2" fill="#fff"/>
@@ -86,7 +86,7 @@ export default function AuthPage() {
             <p className="text-2xl font-semibold leading-snug text-white" style={{ maxWidth: "280px" }}>
               "Every worksite deserves someone watching."
             </p>
-            <p className="text-gray-500 text-sm leading-relaxed" style={{ maxWidth: "300px" }}>
+            <p className="text-gray-300 text-sm leading-relaxed" style={{ maxWidth: "300px" }}>
               We built this because the gap between "required" and "enforced"
               is where people get hurt.
             </p>
@@ -95,12 +95,12 @@ export default function AuthPage() {
 
         <div className="space-y-3">
           <div className="flex items-start gap-3 p-3 rounded-xl"
-               style={{ background: "rgba(255,255,255,0.02)", border: "1px solid #251212" }}>
+               style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.07)" }}>
             <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5"
-                 style={{ background: "rgba(220,38,38,0.1)" }}>
+                 style={{ background: "rgba(255,255,255,0.06)" }}>
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                <path d="M7 1L13 4.5V9.5L7 13L1 9.5V4.5L7 1Z" stroke="#dc2626" strokeWidth="1.2" strokeLinejoin="round"/>
-                <path d="M5 7L6.5 8.5L9 5.5" stroke="#dc2626" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M7 1L13 4.5V9.5L7 13L1 9.5V4.5L7 1Z" stroke="rgba(255,255,255,0.7)" strokeWidth="1.2" strokeLinejoin="round"/>
+                <path d="M5 7L6.5 8.5L9 5.5" stroke="rgba(255,255,255,0.7)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </div>
             <div>
@@ -110,7 +110,7 @@ export default function AuthPage() {
           </div>
 
           <div className="flex items-start gap-3 p-3 rounded-xl"
-               style={{ background: "rgba(255,255,255,0.02)", border: "1px solid #251212" }}>
+               style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.07)" }}>
             <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5"
                  style={{ background: "rgba(52,211,153,0.1)" }}>
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
@@ -141,8 +141,8 @@ export default function AuthPage() {
               </div>
               <div>
                 <h2 className="text-white font-bold text-xl">Check your email</h2>
-                <p className="text-gray-500 text-sm mt-2 leading-relaxed">
-                  We sent a confirmation link to <span className="text-gray-300 font-medium">{email}</span>.
+                <p className="text-gray-200 text-sm mt-2 leading-relaxed">
+                  We sent a confirmation link to <span className="text-white font-medium">{email}</span>.
                   Click it to activate your account.
                 </p>
                 <p className="text-gray-700 text-xs mt-3">
@@ -162,7 +162,7 @@ export default function AuthPage() {
                 <h1 className="text-2xl font-bold text-white">
                   {tab === "signin" ? "Welcome back" : "Create an account"}
                 </h1>
-                <p className="text-gray-500 text-sm mt-1">
+                <p className="text-gray-300 text-sm mt-1">
                   {tab === "signin"
                     ? "Sign in to access your audits."
                     : "Start auditing worksites for free."}
@@ -171,15 +171,15 @@ export default function AuthPage() {
 
               {/* Tab toggle */}
               <div className="flex p-1 rounded-xl mb-6"
-                   style={{ background: "#0e0e0e", border: "1px solid #251212" }}>
+                   style={{ background: "#0e0e0e", border: "1px solid rgba(255,255,255,0.07)" }}>
                 {(["signin", "signup"] as Tab[]).map((t) => (
                   <button
                     key={t}
                     onClick={() => switchTab(t)}
                     className="flex-1 py-2 text-sm font-medium rounded-lg transition-all duration-150"
                     style={tab === t
-                      ? { background: "#1a0a0a", color: "#ffffff", border: "1px solid #3a1818" }
-                      : { color: "#4b5563", border: "1px solid transparent" }
+                      ? { background: "#1a1a1a", color: "#ffffff", border: "1px solid rgba(255,255,255,0.13)" }
+                      : { color: "#9ca3af", border: "1px solid transparent" }
                     }
                   >
                     {t === "signin" ? "Sign in" : "Sign up"}
@@ -190,7 +190,7 @@ export default function AuthPage() {
               <form onSubmit={handleSubmit} className="space-y-4">
                 {/* Email */}
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-gray-400">Email address</label>
+                  <label className="text-xs font-medium text-gray-200">Email address</label>
                   <input
                     type="email"
                     value={email}
@@ -200,15 +200,15 @@ export default function AuthPage() {
                     autoComplete="email"
                     className="w-full px-3.5 py-2.5 rounded-xl text-sm text-white placeholder-gray-700
                                outline-none transition-all duration-150"
-                    style={{ background: "#0e0e0e", border: "1px solid #251212" }}
-                    onFocus={(e) => (e.target.style.borderColor = "rgba(220,38,38,0.45)")}
-                    onBlur={(e) => (e.target.style.borderColor = "#251212")}
+                    style={{ background: "#0e0e0e", border: "1px solid rgba(255,255,255,0.07)" }}
+                    onFocus={(e) => (e.target.style.borderColor = "rgba(255,255,255,0.3)")}
+                    onBlur={(e) => (e.target.style.borderColor = "rgba(255,255,255,0.07)")}
                   />
                 </div>
 
                 {/* Password */}
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-gray-400">Password</label>
+                  <label className="text-xs font-medium text-gray-200">Password</label>
                   <input
                     type="password"
                     value={password}
@@ -219,9 +219,9 @@ export default function AuthPage() {
                     autoComplete={tab === "signin" ? "current-password" : "new-password"}
                     className="w-full px-3.5 py-2.5 rounded-xl text-sm text-white placeholder-gray-700
                                outline-none transition-all duration-150"
-                    style={{ background: "#0e0e0e", border: "1px solid #251212" }}
-                    onFocus={(e) => (e.target.style.borderColor = "rgba(220,38,38,0.45)")}
-                    onBlur={(e) => (e.target.style.borderColor = "#251212")}
+                    style={{ background: "#0e0e0e", border: "1px solid rgba(255,255,255,0.07)" }}
+                    onFocus={(e) => (e.target.style.borderColor = "rgba(255,255,255,0.3)")}
+                    onBlur={(e) => (e.target.style.borderColor = "rgba(255,255,255,0.07)")}
                   />
                 </div>
 
