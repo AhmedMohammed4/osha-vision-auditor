@@ -33,6 +33,27 @@ function violationLabel(type: string): string {
     .join(" ");
 }
 
+const OSHA_CITATIONS: Record<string, string> = {
+  no_hard_hat:          "29 CFR 1926.100(a)",
+  no_eye_protection:    "29 CFR 1926.102(a)(1)",
+  no_safety_vest:       "29 CFR 1926.65(q)(2)(ii)",
+  no_gloves:            "29 CFR 1910.138(a)",
+  improper_footwear:    "29 CFR 1926.96",
+  no_fall_harness:      "29 CFR 1926.502(d)(1)",
+  fall_hazard:          "29 CFR 1926.502(b)(1)",
+  unsafe_ladder:        "29 CFR 1926.1053(b)(1)",
+  scaffold_violation:   "29 CFR 1926.451(g)(1)",
+  electrical_hazard:    "29 CFR 1926.403(b)(1)",
+  housekeeping_hazard:  "29 CFR 1926.25(a)",
+  tool_misuse:          "29 CFR 1926.300(a)",
+  excavation_hazard:    "29 CFR 1926.652(a)(1)",
+  fire_hazard:          "29 CFR 1926.150(a)(1)",
+};
+
+function oshaCode(type: string): string {
+  return OSHA_CITATIONS[type] ?? "29 CFR 1926";
+}
+
 export default function ViolationsTable({
   violations,
   onSeek,
@@ -72,7 +93,7 @@ export default function ViolationsTable({
   }
 
   return (
-    <div className="card">
+    <div className="card" style={{ background: "#000000", border: "1px solid rgba(255,255,255,0.1)" }}>
       <div className="flex items-center justify-between mb-4">
         <p className="section-label">Violations Log</p>
         <span className="text-xs text-gray-600">
@@ -84,7 +105,7 @@ export default function ViolationsTable({
         <table className="w-full text-sm">
           <thead>
             <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
-              {["Timestamp", "Violation", "Description", "Confidence", "Frame"].map((h) => (
+              {["Timestamp", "Violation", "OSHA Citation", "Description", "Confidence", "Frame"].map((h) => (
                 <th key={h}
                     className="text-left py-2.5 px-3 font-medium text-xs tracking-widest uppercase"
                     style={{ color: "#4a4a6a" }}>
@@ -147,6 +168,20 @@ export default function ViolationsTable({
                       }}
                     >
                       {violationLabel(v.violation_type)}
+                    </span>
+                  </td>
+
+                  {/* OSHA Citation */}
+                  <td className="py-3 px-3">
+                    <span
+                      className="inline-flex items-center px-2 py-1 rounded-md text-xs font-mono whitespace-nowrap"
+                      style={{
+                        background: "rgba(255,255,255,0.05)",
+                        color: "#94a3b8",
+                        border: "1px solid rgba(255,255,255,0.1)",
+                      }}
+                    >
+                      {oshaCode(v.violation_type)}
                     </span>
                   </td>
 

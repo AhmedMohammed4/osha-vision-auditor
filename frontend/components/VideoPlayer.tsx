@@ -25,7 +25,7 @@ const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
 
     return (
       <div className="relative w-full aspect-video rounded-2xl overflow-hidden"
-           style={{ background: "#07070f", border: "1px solid #1e1e30" }}>
+           style={{ background: "#000000", border: "1px solid #1e1e30", isolation: "isolate" }}>
         {!ready && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3"
                style={{ background: "#0f0f1a" }}>

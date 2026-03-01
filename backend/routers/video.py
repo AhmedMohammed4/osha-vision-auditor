@@ -153,6 +153,37 @@ def get_video(video_id: str) -> Video:
     )
 
 
+@router.get("/videos", response_model=List[Video])
+def list_videos() -> List[Video]:
+    """
+    Return all video records ordered by most recent upload first.
+    """
+    supabase = get_supabase()
+    try:
+        result = (
+            supabase.table("videos")
+            .select("*")
+            .order("uploaded_at", desc=True)
+            .execute()
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch videos: {str(exc)}")
+
+    return [
+        Video(
+            id=row["id"],
+            filename=row["filename"],
+            status=VideoStatus(row["status"]),
+            risk_score=row.get("risk_score"),
+            report=row.get("report"),
+            video_url=row.get("video_url"),
+            duration=row.get("duration"),
+            uploaded_at=str(row.get("uploaded_at", "")),
+        )
+        for row in result.data
+    ]
+
+
 @router.get("/video/{video_id}/violations", response_model=List[Violation])
 def get_violations(video_id: str) -> List[Violation]:
     """
