@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import VideoUploader from "@/components/VideoUploader";
+import LiveCaptureRecorder from "@/components/LiveCaptureRecorder";
 import ProcessingStatus from "@/components/ProcessingStatus";
 import { uploadVideo, startProcessing, getVideo } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
@@ -17,6 +18,7 @@ export default function UploadPage() {
   const [videoId, setVideoId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [inputMode, setInputMode] = useState<"upload" | "live">("upload");
 
   // Auth guard
   useEffect(() => {
@@ -91,8 +93,33 @@ export default function UploadPage() {
         <div className="card glow-red animate-fade-in-up" style={{ animationDelay: "0.1s", border: "1px solid rgba(255,255,255,0.32)" }}>
           {isActive ? (
             <div className="space-y-4">
-              <VideoUploader onFileSelected={setSelectedFile} disabled={false} />
+                <div className="flex gap-2 rounded-xl border border-white/10 bg-black/20 p-1 text-xs">
+                  <button
+                  type="button"
+                  onClick={() => { setInputMode("upload"); setSelectedFile(null); }}
+                  className={`flex-1 rounded-lg px-3 py-2 font-medium transition ${
+                    inputMode === "upload" ? "bg-red-600/20 text-red-300" : "text-gray-500 hover:text-gray-300"
+                  }`}
+                >
+                  Upload video
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setInputMode("live"); setSelectedFile(null); }}
+                  className={`flex-1 rounded-lg px-3 py-2 font-medium transition ${
+                    inputMode === "live" ? "bg-red-600/20 text-red-300" : "text-gray-500 hover:text-gray-300"
+                  }`}
+                >
+                  Live capture
+                </button>
+              </div>
 
+              {inputMode === "upload" ? (
+                <VideoUploader onFileSelected={setSelectedFile} disabled={false} />
+              ) : (
+                <LiveCaptureRecorder onFileReady={setSelectedFile} onReset={() => setSelectedFile(null)} disabled={false} />
+              )}
+              
               {selectedFile && (
                 <button onClick={handleStartAnalysis} className="btn-primary w-full py-3 text-sm">
                   <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
