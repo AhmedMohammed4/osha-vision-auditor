@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import type { Violation } from "@/types";
+import { getOshaReference } from "@/lib/oshaReferences";
 
 interface ViolationsTableProps {
   violations: Violation[];
@@ -84,7 +85,7 @@ export default function ViolationsTable({
         <table className="w-full text-sm">
           <thead>
             <tr style={{ borderBottom: "1px solid #251212" }}>
-              {["Timestamp", "Violation", "Description", "Confidence", "Frame"].map((h) => (
+              {["Timestamp", "Violation", "Description", "OSHA Citation", "Confidence", "Frame"].map((h) => (
                 <th key={h}
                     className="text-left py-2.5 px-3 font-medium text-xs tracking-widest uppercase"
                     style={{ color: "#4a4a6a" }}>
@@ -155,6 +156,24 @@ export default function ViolationsTable({
                     <p className="text-gray-400 text-xs leading-relaxed line-clamp-2">
                       {v.description ?? "—"}
                     </p>
+                  </td>
+
+                  {/* OSHA citation */}
+                  <td className="py-3 px-3 max-w-xs">
+                    {(() => {
+                      const reference = getOshaReference(v.violation_type);
+                      if (!reference) {
+                        return <span style={{ color: "#3a1818" }} className="text-xs">—</span>;
+                      }
+
+                      return (
+                        <p className="text-gray-400 text-xs leading-relaxed">
+                          <span className="font-semibold text-gray-300">{reference.citation}</span>
+                          {" — "}
+                          {reference.summary}
+                        </p>
+                      );
+                    })()}
                   </td>
 
                   {/* Confidence */}
