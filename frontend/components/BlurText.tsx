@@ -16,7 +16,7 @@ interface BlurTextProps {
   rootMargin?: string;
   animationFrom?: Record<string, unknown>;
   animationTo?: Record<string, unknown>;
-  easing?: number[];
+  easing?: [number, number, number, number];
   onAnimationComplete?: () => void;
   /** Duration in seconds for each element's fade/blur animation */
   stepDuration?: number;
@@ -33,7 +33,7 @@ export default function BlurText({
   rootMargin = "0px",
   animationFrom,
   animationTo,
-  easing = [0.25, 0.4, 0.55, 1],
+  easing = [0.25, 0.4, 0.55, 1] as [number, number, number, number],
   onAnimationComplete,
   stepDuration = 0.35,
 }: BlurTextProps) {
