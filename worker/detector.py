@@ -15,6 +15,8 @@ import anthropic
 import cv2
 import numpy as np
 
+from .osha_citations import hydrate_citation
+
 logger = logging.getLogger(__name__)
 
 _SYSTEM_PROMPT = """You are an expert OSHA 29 CFR 1926 construction safety inspector analyzing a single video frame from a construction site.
@@ -24,7 +26,7 @@ Examine the image carefully and identify ALL visible safety violations. Check ac
 **PPE Violations:**
 - No hard hat / helmet (29 CFR 1926.100) → violation_type: "no_hard_hat"
 - No eye/face protection when needed (29 CFR 1926.102) → violation_type: "no_eye_protection"
-- No high-visibility safety vest (29 CFR 1926.65) → violation_type: "no_safety_vest"
+- No high-visibility safety vest (29 CFR 1926.651(d)) → violation_type: "no_safety_vest"
 - No gloves when handling hazardous materials (29 CFR 1910.138) → violation_type: "no_gloves"
 - Improper footwear / no steel-toed boots (29 CFR 1926.96) → violation_type: "improper_footwear"
 
@@ -153,10 +155,12 @@ def detect_violations(frame: np.ndarray, timestamp: float) -> List[Dict[str, Any
             )
             return []
 
+        normalized = [hydrate_citation(v) for v in violations if isinstance(v, dict)]
+
         logger.info(
-            f"t={timestamp:.1f}s: Claude detected {len(violations)} violation(s)"
+            f"t={timestamp:.1f}s: Claude detected {len(normalized)} violation(s)"
         )
-        return violations
+        return normalized
 
     except json.JSONDecodeError as exc:
         logger.error(f"t={timestamp:.1f}s: JSON parse error from Claude: {exc}")
