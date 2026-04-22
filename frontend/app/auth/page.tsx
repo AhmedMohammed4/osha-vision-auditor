@@ -7,7 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 
 type Tab = "signin" | "signup";
 
-export default function AuthPage() {
+function AuthPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, loading, signIn, signUp } = useAuth();
@@ -61,6 +61,7 @@ export default function AuthPage() {
   if (loading) return null;
 
   return (
+
     <div className="min-h-[calc(100vh-3.5rem)] -mt-10 -mx-5 sm:-mx-8 grid lg:grid-cols-[420px_1fr]">
 
       {/* Left panel — brand / story */}
@@ -272,5 +273,13 @@ export default function AuthPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function AuthPage() {
+  return (
+    <Suspense>
+      <AuthPageInner />
+    </Suspense>
   );
 }
