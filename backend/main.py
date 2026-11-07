@@ -41,11 +41,12 @@ app = FastAPI(
 )
 
 # ---------------------------------------------------------------------------
-# CORS — allow frontend dev server
+# CORS — allow the production frontend and local development servers
 # ---------------------------------------------------------------------------
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
+        "https://osha-vision-auditor.vercel.app",
         "http://localhost:3000",
         "http://127.0.0.1:3000",
         "http://localhost:3001",
