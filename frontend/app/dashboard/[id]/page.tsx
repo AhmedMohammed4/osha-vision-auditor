@@ -35,7 +35,7 @@ export default function DashboardPage() {
     queryFn: () => getVideo(videoId),
     refetchInterval: (query) => {
       const status = query.state.data?.status;
-      if (status === "completed" || status === "failed") return false;
+      if (status === "completed" || status === "failed" || status === "cancelled") return false;
       return 2000;
     },
   });
@@ -118,7 +118,7 @@ export default function DashboardPage() {
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <button
-            onClick={() => router.push("/")}
+            onClick={() => router.push("/upload")}
             className="btn-ghost text-xs mb-2 flex items-center gap-1"
           >
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
@@ -127,7 +127,9 @@ export default function DashboardPage() {
             </svg>
             Back to upload
           </button>
-          <h1 className="text-xl font-bold text-white truncate">{video.filename}</h1>
+          <h1 className="text-xl font-bold text-white truncate">
+            {video.is_demo ? "Saved trench safety demo" : video.filename}
+          </h1>
           <p className="text-gray-600 text-xs mt-0.5">
             {new Date(video.uploaded_at).toLocaleString()}
             {video.duration ? ` · ${Math.round(video.duration)}s` : ""}
@@ -150,7 +152,13 @@ export default function DashboardPage() {
       {/* Processing overlay */}
       {video.status === "processing" && (
         <div className="card">
-          <ProcessingStatus />
+          <ProcessingStatus progress={video.progress} />
+        </div>
+      )}
+
+      {video.status === "cancelled" && (
+        <div className="card p-6 text-sm text-gray-300">
+          Audit cancelled. <button onClick={() => router.push("/upload")} className="ml-2 underline">Start a new audit</button>
         </div>
       )}
 
@@ -169,7 +177,9 @@ export default function DashboardPage() {
             <div>
               <p className="text-white font-semibold text-sm">Processing failed</p>
               <p className="text-gray-500 text-xs mt-0.5">
-                An error occurred during video analysis. Please try uploading again.
+                {video.report?.startsWith("Video analysis could not finish.")
+                  ? video.report
+                  : "An error occurred during video analysis. Please try uploading again."}
               </p>
               <button onClick={() => router.push("/")} className="btn-primary mt-3 text-xs px-4 py-2">
                 Upload again
@@ -245,7 +255,6 @@ export default function DashboardPage() {
                   <p className="text-white font-bold text-lg">
                     {Math.floor(video.duration / 60)}:{String(Math.round(video.duration % 60)).padStart(2, "0")}
                   </p>
-                  <p className="text-gray-600 text-xs">{Math.ceil(video.duration)} frames sampled</p>
                 </div>
               )}
             </div>

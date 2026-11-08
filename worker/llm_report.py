@@ -36,7 +36,7 @@ def generate_report(
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
         logger.warning("OPENAI_API_KEY is missing. Using the findings summary.")
-        return _default_report(violations, risk_score)
+        return summarize_findings(violations, risk_score)
 
     # Count violations by type for the prompt
     type_counts = Counter(v.get("violation_type", "unknown") for v in violations)
@@ -95,7 +95,7 @@ Keep the tone professional and concise. Do not include introductory text before 
         logger.warning("OpenAI report was incomplete for video %s", video_id)
     except OpenAIError:
         logger.exception("OpenAI report request failed for video %s", video_id)
-    return _default_report(violations, risk_score)
+    return summarize_findings(violations, risk_score)
 
 
 def _severity_label(score: float) -> str:
@@ -108,7 +108,7 @@ def _severity_label(score: float) -> str:
         return "LOW RISK"
 
 
-def _default_report(violations: List[Dict[str, Any]], risk_score: float) -> str:
+def summarize_findings(violations: List[Dict[str, Any]], risk_score: float) -> str:
     """
     Fallback report when OpenAI is unavailable.
     Produces a deterministic text-based report from violation data.

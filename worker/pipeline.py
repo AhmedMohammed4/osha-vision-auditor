@@ -1,236 +1,173 @@
-"""
-Main video processing pipeline for OSHA Vision Auditor.
-
-Orchestrates: download → frame extraction → detection → violation storage
-             → risk scoring → LLM report → DB update.
-"""
+"""Analyze worksite videos with bounded memory and cooperative cancellation."""
 
 import logging
+import math
 import os
 import tempfile
 import time
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, Dict, List, Tuple
+from itertools import islice
 
 import cv2
 import numpy as np
 
+from backend.services.audit_jobs import MAX_VIDEO_SECONDS, update_run
+from backend.services.storage import download_video, upload_frame
+from backend.services.supabase_client import get_supabase
+
 from .detector import detect_violations
-from .risk_scorer import compute_risk_score
 from .llm_report import generate_report
 from .openai_client import analysis_failure_message
+from .risk_scorer import compute_risk_score
 
 logger = logging.getLogger(__name__)
 
-# Analyze frames concurrently to keep short clips interactive.
 _MAX_WORKERS = 8
-
-# Sample 1 frame every N seconds of video.
-# 2s = good violation coverage at half the API cost of 1fps.
 _SAMPLE_EVERY_SECONDS = 2.0
+_TOO_LONG = f"Choose a clip no longer than {MAX_VIDEO_SECONDS // 60} minutes."
 
 
-def process_video(video_id: str) -> None:
-    """
-    Full processing pipeline for a single video.
+class VideoInputError(ValueError):
+    """An input problem that can be shown directly to the user."""
 
-    Steps:
-        1. Mark video as 'processing' in DB.
-        2. Download video bytes from Supabase Storage.
-        3. Write to a temporary file for OpenCV.
-        4. Seek directly to target frames (1 per 2s) — no wasted reads.
-        5. Analyze sampled frames concurrently.
-        6. Upload violation frames to Supabase Storage.
-        7. Bulk insert violations into DB.
-        8. Compute risk score.
-        9. Generate LLM safety report.
-        10. Update video record: status='completed', risk_score, report.
 
-    On any unhandled exception, sets video status to 'failed'.
-
-    Args:
-        video_id: UUID string of the video record to process.
-    """
-    # Import here to avoid circular imports (backend imports worker)
-    from backend.services.supabase_client import get_supabase
-    from backend.services.storage import download_video, upload_frame
-
+def process_video(video_id: str, run_id: str, filename: str) -> None:
     supabase = get_supabase()
-    tmp_path: str = ""
+    started = time.monotonic()
+    tmp_path = ""
+    capture = None
 
     try:
-        logger.info(f"[{video_id}] Pipeline started.")
-        start_time = time.time()
-
-        # Step 1 — Mark as processing
-        supabase.table("videos").update({"status": "processing"}).eq("id", video_id).execute()
-
-        # Step 2 — Fetch video record for filename
-        result = supabase.table("videos").select("*").eq("id", video_id).single().execute()
-        video_record = result.data
-        filename: str = video_record["filename"]
-
-        logger.info(f"[{video_id}] Downloading video: {filename}")
-
-        # Step 3 — Download and write to temp file
-        video_bytes = download_video(filename)
-
-        with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as tmp:
-            tmp.write(video_bytes)
+        with tempfile.NamedTemporaryFile(suffix=os.path.splitext(filename)[1], delete=False) as tmp:
             tmp_path = tmp.name
+            tmp.write(download_video(filename))
 
-        logger.info(f"[{video_id}] Video written to temp: {tmp_path} ({len(video_bytes)} bytes)")
+        capture = _open_video(tmp_path)
+        fps = capture.get(cv2.CAP_PROP_FPS)
+        if not math.isfinite(fps) or fps <= 0:
+            fps = 25.0
+        reported_frames = capture.get(cv2.CAP_PROP_FRAME_COUNT)
+        seekable = math.isfinite(reported_frames) and 0 < reported_frames < 10**12
+        if seekable:
+            frame_count = int(reported_frames)
+        else:
+            # Browser recordings can omit the duration and frame count.
+            frame_count = _count_frames(capture, fps)
+            capture.release()
+            capture = _open_video(tmp_path)
 
-        # Step 4 — Open with OpenCV and gather metadata
-        cap = cv2.VideoCapture(tmp_path)
-        if not cap.isOpened():
-            raise RuntimeError(f"OpenCV could not open video file: {tmp_path}")
+        duration = frame_count / fps
+        if duration > MAX_VIDEO_SECONDS:
+            raise VideoInputError(_TOO_LONG)
+        if not frame_count:
+            raise VideoInputError("This clip contains no readable video frames.")
 
-        fps = cap.get(cv2.CAP_PROP_FPS) or 25.0
-        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-        duration = total_frames / fps if fps > 0 else 0.0
-        frame_step = max(1, int(round(fps * _SAMPLE_EVERY_SECONDS)))
+        frame_step = max(1, round(fps * _SAMPLE_EVERY_SECONDS))
+        targets = range(0, frame_count, frame_step)
+        total = len(targets)
+        if not update_run(
+            supabase, video_id, run_id, duration=duration,
+            progress={"stage": "analyzing", "frames_done": 0, "frames_total": total},
+        ):
+            return
 
-        logger.info(
-            f"[{video_id}] Video metadata: fps={fps:.2f}, "
-            f"total_frames={total_frames}, duration={duration:.1f}s, "
-            f"sampling every {_SAMPLE_EVERY_SECONDS}s ({frame_step} frames)"
-        )
+        def analyze(sample: tuple[float, np.ndarray]) -> tuple[float, np.ndarray, list[dict]]:
+            timestamp, frame = sample
+            return timestamp, frame, detect_violations(frame, timestamp)
 
-        # Update duration in DB
-        supabase.table("videos").update({"duration": duration}).eq("id", video_id).execute()
-
-        # Step 4 — Seek directly to each target frame (skips unused frames entirely)
-        sampled_frames: List[Tuple[np.ndarray, float]] = []
-        target = 0
-        while target < total_frames:
-            cap.set(cv2.CAP_PROP_POS_FRAMES, target)
-            ret, frame = cap.read()
-            if ret:
-                sampled_frames.append((frame.copy(), target / fps))
-            target += frame_step
-
-        cap.release()
-
-        sampled_count = len(sampled_frames)
-        if not sampled_count:
-            raise RuntimeError("No readable video frames were available for analysis")
-        logger.info(
-            f"[{video_id}] Collected {sampled_count} frames in "
-            f"{time.time() - start_time:.1f}s. "
-            f"Running OpenAI vision concurrently (workers={_MAX_WORKERS})..."
-        )
-
-        # A frame failure must not become a completed audit with a low score.
-        def _detect(args: Tuple[np.ndarray, float]) -> Tuple[float, np.ndarray, List[Dict[str, Any]]]:
-            frm, ts = args
-            return ts, frm, detect_violations(frm, ts)
-
-        def _store_findings(result: Tuple[float, np.ndarray, List[Dict[str, Any]]]) -> List[Dict[str, Any]]:
+        def save_evidence(result: tuple[float, np.ndarray, list[dict]]) -> list[dict]:
             timestamp, frame, findings = result
-            frame_url = _encode_and_upload_frame(frame, video_id, timestamp, upload_frame)
-            for finding in findings:
-                finding["timestamp"] = timestamp
-                finding["frame_url"] = frame_url
-                finding["video_id"] = video_id
-            return findings
+            success, jpeg = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 85])
+            if not success:
+                raise RuntimeError(f"Failed to encode evidence frame at {timestamp:.2f}s")
+            frame_url = upload_frame(jpeg.tobytes(), video_id, timestamp)
+            return [{**finding, "timestamp": timestamp, "frame_url": frame_url} for finding in findings]
 
-        all_violations: List[Dict[str, Any]] = []
+        all_findings: list[dict] = []
+        analyzed = 0
+        samples = _sample_frames(capture, fps, targets, seekable)
         with ThreadPoolExecutor(max_workers=_MAX_WORKERS) as executor:
-            detection_results = list(executor.map(_detect, sampled_frames))
-            evidence_started = time.monotonic()
-            evidence_frames = (result for result in detection_results if result[2])
-            for findings in executor.map(_store_findings, evidence_frames):
-                all_violations.extend(findings)
+            for offset in range(0, total, _MAX_WORKERS):
+                batch = list(islice(samples, _MAX_WORKERS))
+                results = list(executor.map(analyze, batch))
+                for findings in executor.map(save_evidence, (result for result in results if result[2])):
+                    all_findings.extend(findings)
+                analyzed += len(batch)
+                del batch, results
 
-        logger.info("[%s] Saved evidence images in %.1fs", video_id, time.monotonic() - evidence_started)
-        logger.info(
-            f"[{video_id}] Analysis complete in {time.time() - start_time:.1f}s. "
-            f"Sampled {sampled_count} frames, found {len(all_violations)} violations."
-        )
+                last_batch = offset + _MAX_WORKERS >= total
+                if last_batch and not analyzed:
+                    raise VideoInputError("This clip contains no readable video frames.")
+                # This conditional write also stops a cancelled or superseded run.
+                if not update_run(supabase, video_id, run_id, progress={
+                    "stage": "report" if last_batch else "analyzing",
+                    "frames_done": analyzed,
+                    "frames_total": analyzed if last_batch else total,
+                }):
+                    return
 
-        # Step 7 — Bulk insert violations
-        if all_violations:
-            violation_rows = [
-                {
-                    "video_id": v["video_id"],
-                    "timestamp": v["timestamp"],
-                    "violation_type": v["violation_type"],
-                    "confidence": v.get("confidence", 0.0),
-                    "frame_url": v.get("frame_url"),
-                    "description": v.get("description"),
-                }
-                for v in all_violations
-            ]
-            supabase.table("violations").insert(violation_rows).execute()
-            logger.info(f"[{video_id}] Inserted {len(violation_rows)} violations to DB.")
-
-        # Step 8 — Compute risk score
-        risk_score = compute_risk_score(all_violations, sampled_count)
-
-        # Step 9 — Generate LLM report
-        logger.info(f"[{video_id}] Generating LLM safety report...")
-        report_text = generate_report(video_id, all_violations, risk_score)
-
-        # Step 10 — Update video record as completed
-        supabase.table("videos").update(
-            {
-                "status": "completed",
-                "risk_score": risk_score,
-                "report": report_text,
-            }
-        ).eq("id", video_id).execute()
-
-        elapsed = time.time() - start_time
-        logger.info(
-            f"[{video_id}] Pipeline completed in {elapsed:.1f}s. "
-            f"Risk score: {risk_score}"
-        )
+        risk_score = compute_risk_score(all_findings, analyzed)
+        report = generate_report(video_id, all_findings, risk_score)
+        result = supabase.rpc("finish_audit", {
+            "p_video_id": video_id,
+            "p_run_id": run_id,
+            "p_risk_score": risk_score,
+            "p_report": report,
+            "p_findings": all_findings,
+        }).execute()
+        if result.data:
+            logger.info("Audit %s completed in %.1fs", video_id, time.monotonic() - started)
 
     except Exception as error:
-        logger.exception("Pipeline failed for video %s", video_id)
+        logger.exception("Audit %s failed", video_id)
+        message = (
+            f"Video analysis could not finish. {error}"
+            if isinstance(error, VideoInputError)
+            else analysis_failure_message(error)
+        )
         try:
-            from backend.services.supabase_client import get_supabase as _get_sb
-            _get_sb().table("videos").update({
-                "status": "failed",
-                "report": analysis_failure_message(error),
-            }).eq("id", video_id).execute()
+            update_run(get_supabase(), video_id, run_id, status="failed", report=message, progress=None)
         except Exception:
-            pass
-        raise
-
+            logger.exception("Could not save failure status for audit %s", video_id)
     finally:
-        # Always clean up temp file
-        if tmp_path and os.path.exists(tmp_path):
+        if capture is not None:
+            capture.release()
+        if tmp_path:
             try:
                 os.unlink(tmp_path)
-                logger.debug(f"[{video_id}] Temp file removed: {tmp_path}")
             except OSError:
-                pass
+                logger.warning("Could not remove temporary video for audit %s", video_id)
 
 
-def _encode_and_upload_frame(
-    frame: np.ndarray,
-    video_id: str,
-    timestamp: float,
-    upload_fn,
-) -> str:
-    """
-    JPEG-encode a frame and upload it to Supabase Storage.
+def _open_video(path: str) -> cv2.VideoCapture:
+    capture = cv2.VideoCapture(path)
+    if not capture.isOpened():
+        capture.release()
+        raise VideoInputError("This video could not be opened. Try exporting it as MP4.")
+    return capture
 
-    Args:
-        frame: BGR numpy array.
-        video_id: Parent video ID.
-        timestamp: Frame timestamp in seconds.
-        upload_fn: Storage upload callable.
 
-    Returns:
-        Public URL of the uploaded frame.
-    """
-    success, buffer = cv2.imencode(
-        ".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 85]
-    )
-    if not success:
-        raise RuntimeError(f"Failed to encode frame at t={timestamp:.2f}s")
+def _count_frames(capture: cv2.VideoCapture, fps: float) -> int:
+    limit = math.floor(fps * MAX_VIDEO_SECONDS)
+    for count in range(limit + 1):
+        if not capture.grab():
+            return count
+    raise VideoInputError(_TOO_LONG)
 
-    return upload_fn(buffer.tobytes(), video_id, timestamp)
+
+def _sample_frames(capture: cv2.VideoCapture, fps: float, targets: range, seekable: bool):
+    position = 0
+    for target in targets:
+        if seekable:
+            capture.set(cv2.CAP_PROP_POS_FRAMES, target)
+        else:
+            while position < target:
+                if not capture.grab():
+                    return
+                position += 1
+        success, frame = capture.read()
+        if success:
+            yield target / fps, frame
+        elif not seekable:
+            return
+        position = target + 1

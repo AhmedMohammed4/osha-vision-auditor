@@ -7,9 +7,14 @@ import os
 import uuid
 from typing import List
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException, UploadFile, File
+from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile
+from supabase import Client
 
-from ..models.schemas import UploadResponse, ProcessResponse, Video, Violation, VideoStatus
+from worker.pipeline import process_video
+
+from ..models.schemas import UploadResponse, ProcessResponse, SavedDemo, Video, Violation, VideoStatus
+from ..services.audit_jobs import expire_stalled_run, utc_now
+from ..services.auth import require_user_id
 from ..services.supabase_client import get_supabase
 from ..services.storage import upload_video
 
@@ -22,7 +27,10 @@ MAX_FILE_SIZE_BYTES = 100 * 1024 * 1024  # 100 MB
 
 
 @router.post("/upload-video", response_model=UploadResponse)
-async def upload_video_endpoint(file: UploadFile = File(...)) -> UploadResponse:
+def upload_video_endpoint(
+    file: UploadFile = File(...),
+    owner_id: str = Depends(require_user_id),
+) -> UploadResponse:
     """
     Accept a video upload, store it in Supabase Storage, and create a DB record.
 
@@ -43,7 +51,7 @@ async def upload_video_endpoint(file: UploadFile = File(...)) -> UploadResponse:
         )
 
     # Read file bytes
-    file_bytes = await file.read()
+    file_bytes = file.file.read(MAX_FILE_SIZE_BYTES + 1)
 
     # Validate size
     if len(file_bytes) > MAX_FILE_SIZE_BYTES:
@@ -71,12 +79,13 @@ async def upload_video_endpoint(file: UploadFile = File(...)) -> UploadResponse:
     # Insert video record into DB
     supabase = get_supabase()
     try:
-        result = supabase.table("videos").insert(
+        supabase.table("videos").insert(
             {
                 "id": video_id,
                 "filename": storage_filename,
                 "status": VideoStatus.uploaded.value,
                 "video_url": video_url,
+                "owner_id": owner_id,
             }
         ).execute()
     except Exception as exc:
@@ -88,7 +97,11 @@ async def upload_video_endpoint(file: UploadFile = File(...)) -> UploadResponse:
 
 
 @router.post("/process-video/{video_id}", response_model=ProcessResponse)
-async def process_video_endpoint(video_id: str, background_tasks: BackgroundTasks) -> ProcessResponse:
+def process_video_endpoint(
+    video_id: uuid.UUID,
+    background_tasks: BackgroundTasks,
+    owner_id: str = Depends(require_user_id),
+) -> ProcessResponse:
     """
     Start background OpenAI analysis and record safe failure details.
 
@@ -104,26 +117,75 @@ async def process_video_endpoint(video_id: str, background_tasks: BackgroundTask
     if not os.getenv("OPENAI_API_KEY"):
         raise HTTPException(status_code=503, detail="Video analysis is not configured yet.")
 
-    # Verify the video exists and is in a processable state
+    video_id = str(video_id)
     supabase = get_supabase()
-    try:
-        result = supabase.table("videos").select("id, status").eq("id", video_id).single().execute()
-    except Exception:
-        raise HTTPException(status_code=404, detail=f"Video {video_id} not found.")
+    video = expire_stalled_run(supabase, _owned_video(supabase, video_id, owner_id))
+    if video["status"] in ("processing", "completed"):
+        return ProcessResponse(video_id=video_id, message="Audit already started.")
+    if video["status"] == "cancelled":
+        raise HTTPException(409, "This audit was cancelled. Select a video to start a new audit.")
 
-    video = result.data
-    if video["status"] not in (VideoStatus.uploaded.value, VideoStatus.failed.value):
-        raise HTTPException(
-            status_code=409,
-            detail=f"Video is already in status '{video['status']}'.",
-        )
+    run_id = str(uuid.uuid4())
+    query = (
+        supabase.table("videos")
+        .update({
+            "status": "processing",
+            "run_id": run_id,
+            "progress": {"stage": "queued"},
+            "processing_updated_at": utc_now(),
+            "report": None,
+        })
+        .eq("id", video_id)
+        .eq("owner_id", owner_id)
+        .eq("status", video["status"])
+    )
+    if video.get("run_id"):
+        query = query.eq("run_id", video["run_id"])
+    else:
+        query = query.is_("run_id", "null")
+    if query.execute().data:
+        background_tasks.add_task(process_video, video_id, run_id, video["filename"])
+        logger.info("Pipeline queued for video %s", video_id)
+        return ProcessResponse(video_id=video_id, message="Processing started.")
+    return ProcessResponse(video_id=video_id, message="Audit already started.")
 
-    # Queue pipeline as a background task — returns immediately
-    from worker.pipeline import process_video  # noqa: E402
-    background_tasks.add_task(process_video, video_id)
-    logger.info(f"Pipeline queued for video: {video_id}")
 
-    return ProcessResponse(video_id=video_id, message="Processing started.")
+@router.post("/video/{video_id}/cancel", response_model=ProcessResponse)
+def cancel_video(video_id: uuid.UUID, owner_id: str = Depends(require_user_id)) -> ProcessResponse:
+    video_id = str(video_id)
+    supabase = get_supabase()
+    result = (
+        supabase.table("videos")
+        .update({"status": "cancelled", "progress": None, "processing_updated_at": utc_now()})
+        .eq("id", video_id)
+        .eq("owner_id", owner_id)
+        .eq("status", "processing")
+        .execute()
+    )
+    if not result.data and _owned_video(supabase, video_id, owner_id)["status"] != "cancelled":
+        raise HTTPException(409, "This audit is no longer processing.")
+    return ProcessResponse(video_id=video_id, message="Audit cancelled.")
+
+
+def _owned_video(supabase: Client, video_id: str, owner_id: str) -> dict:
+    result = (
+        supabase.table("videos").select("*")
+        .eq("id", video_id).eq("owner_id", owner_id).limit(1).execute()
+    )
+    if not result.data:
+        raise HTTPException(404, "Audit not found.")
+    return result.data[0]
+
+
+@router.get("/demo", response_model=SavedDemo, dependencies=[Depends(require_user_id)])
+def get_saved_demo() -> SavedDemo:
+    result = (
+        get_supabase().table("videos").select("id")
+        .eq("is_demo", True).eq("status", "completed").limit(1).execute()
+    )
+    if not result.data:
+        raise HTTPException(404, "No saved demo is available.")
+    return SavedDemo(video_id=result.data[0]["id"])
 
 
 @router.get("/video/{video_id}", response_model=Video)
@@ -143,7 +205,7 @@ def get_video(video_id: str) -> Video:
     except Exception:
         raise HTTPException(status_code=404, detail=f"Video {video_id} not found.")
 
-    row = result.data
+    row = expire_stalled_run(supabase, result.data)
     return Video(
         id=row["id"],
         filename=row["filename"],
@@ -153,6 +215,8 @@ def get_video(video_id: str) -> Video:
         video_url=row.get("video_url"),
         duration=row.get("duration"),
         uploaded_at=str(row.get("uploaded_at", "")),
+        progress=row.get("progress"),
+        is_demo=row.get("is_demo", False),
     )
 
 

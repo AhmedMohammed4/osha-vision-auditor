@@ -17,10 +17,7 @@ router = APIRouter()
 @router.get("/video/{video_id}/report", response_model=ReportResponse)
 def get_report(video_id: str) -> ReportResponse:
     """
-    Retrieve or generate the LLM safety report for a completed video.
-
-    If the report is already stored in the DB, returns it immediately.
-    Otherwise, triggers report generation and stores it before returning.
+    Retrieve a saved report or summarize findings for an older audit.
 
     Args:
         video_id: UUID of the video.
@@ -59,10 +56,8 @@ def get_report(video_id: str) -> ReportResponse:
     )
     violations = violations_result.data
 
-    # Generate report via LLM
-    logger.info(f"Generating report for video {video_id} ({len(violations)} violations)")
-    from worker.llm_report import generate_report
-    report_text = generate_report(video_id, violations, video.get("risk_score", 0.0))
+    from worker.llm_report import summarize_findings
+    report_text = summarize_findings(violations, video.get("risk_score") or 0.0)
 
     # Cache the report in DB
     supabase.table("videos").update({"report": report_text}).eq("id", video_id).execute()

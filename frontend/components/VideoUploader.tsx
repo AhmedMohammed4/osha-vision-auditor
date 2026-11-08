@@ -4,7 +4,8 @@ import { useCallback, useState } from "react";
 import { useDropzone } from "react-dropzone";
 
 interface VideoUploaderProps {
-  onFileSelected: (file: File) => void;
+  selectedFile: File | null;
+  onFileSelected: (file: File | null) => void;
   disabled?: boolean;
 }
 
@@ -15,14 +16,14 @@ function formatBytes(bytes: number): string {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
-export default function VideoUploader({ onFileSelected, disabled = false }: VideoUploaderProps) {
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+export default function VideoUploader({ selectedFile, onFileSelected, disabled = false }: VideoUploaderProps) {
   const [sizeError, setSizeError] = useState<string | null>(null);
 
   const onDrop = useCallback(
     (acceptedFiles: File[], rejectedFiles: any[]) => {
       setSizeError(null);
       if (rejectedFiles.length > 0) {
+        onFileSelected(null);
         setSizeError(rejectedFiles[0].errors.map((e: any) => e.message).join(". "));
         return;
       }
@@ -32,7 +33,6 @@ export default function VideoUploader({ onFileSelected, disabled = false }: Vide
         setSizeError(`File too large (${formatBytes(file.size)}). Max 100 MB.`);
         return;
       }
-      setSelectedFile(file);
       onFileSelected(file);
     },
     [onFileSelected]
@@ -104,11 +104,11 @@ export default function VideoUploader({ onFileSelected, disabled = false }: Vide
               <div className="flex items-center justify-center gap-2">
                 <span className="text-gray-500 text-xs">{formatBytes(selectedFile.size)}</span>
                 <span className="w-1 h-1 rounded-full bg-gray-700" />
-                <span className="text-emerald-400 text-xs font-medium">Ready to analyze</span>
+                <span className="text-emerald-400 text-xs font-medium">Selected</span>
               </div>
               <button
                 type="button"
-                onClick={(e) => { e.stopPropagation(); setSelectedFile(null); setSizeError(null); }}
+                onClick={(e) => { e.stopPropagation(); onFileSelected(null); setSizeError(null); }}
                 className="text-gray-600 hover:text-gray-400 text-xs underline mt-1 transition-colors"
               >
                 Change file

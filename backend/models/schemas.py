@@ -1,7 +1,7 @@
 """Pydantic schemas for request/response models."""
 
 from enum import Enum
-from typing import Optional
+from typing import Literal, Optional
 from pydantic import BaseModel
 
 
@@ -11,6 +11,13 @@ class VideoStatus(str, Enum):
     processing = "processing"
     completed = "completed"
     failed = "failed"
+    cancelled = "cancelled"
+
+
+class AuditProgress(BaseModel):
+    stage: Literal["queued", "analyzing", "report"]
+    frames_done: int = 0
+    frames_total: int = 0
 
 
 class Video(BaseModel):
@@ -23,6 +30,12 @@ class Video(BaseModel):
     video_url: Optional[str] = None
     duration: Optional[float] = None
     uploaded_at: str
+    progress: Optional[AuditProgress] = None
+    is_demo: bool = False
+
+
+class SavedDemo(BaseModel):
+    video_id: str
 
 
 class Violation(BaseModel):

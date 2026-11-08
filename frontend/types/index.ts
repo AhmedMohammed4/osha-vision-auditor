@@ -1,4 +1,10 @@
-export type VideoStatus = "uploaded" | "processing" | "completed" | "failed";
+export type VideoStatus = "uploaded" | "processing" | "completed" | "failed" | "cancelled";
+
+export interface AuditProgress {
+  stage: "queued" | "analyzing" | "report";
+  frames_done: number;
+  frames_total: number;
+}
 
 export interface Video {
   id: string;
@@ -9,6 +15,8 @@ export interface Video {
   video_url: string | null;
   duration: number | null;
   uploaded_at: string;
+  progress?: AuditProgress | null;
+  is_demo?: boolean;
 }
 
 export interface Violation {

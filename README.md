@@ -50,7 +50,7 @@ sudo apt install ffmpeg
 
 1. Go to [supabase.com](https://supabase.com) and create a new project.
 
-2. Open the **SQL Editor** and run the entire contents of `supabase/schema.sql`.
+2. Open the **SQL Editor** and run `supabase/schema.sql`, followed by the SQL files in `supabase/migrations/` in filename order.
 
 3. Go to **Storage** → click **New bucket**:
    - Name: `videos` → enable **Public bucket** → Save

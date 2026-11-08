@@ -25,6 +25,7 @@ function StatusBadge({ status }: { status: Video["status"] }) {
     processing: { bg: "rgba(251,191,36,0.12)", color: "#fbbf24", label: "Processing" },
     uploaded:   { bg: "rgba(148,163,184,0.12)", color: "#94a3b8", label: "Queued" },
     failed:     { bg: "rgba(239,68,68,0.12)",  color: "#ef4444", label: "Failed" },
+    cancelled:  { bg: "rgba(148,163,184,0.12)", color: "#94a3b8", label: "Cancelled" },
   };
   const s = styles[status] ?? styles.uploaded;
   return (
@@ -137,7 +138,7 @@ export default function HistoryPage() {
                 >
                   View report
                 </Link>
-              ) : video.status === "processing" || video.status === "uploaded" ? (
+              ) : video.status !== "failed" ? (
                 <Link
                   href={`/dashboard/${video.id}`}
                   className="btn-ghost text-xs shrink-0"

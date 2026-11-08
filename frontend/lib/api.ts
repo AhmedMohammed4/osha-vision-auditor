@@ -14,7 +14,7 @@ export async function warmUpBackend(): Promise<void> {
  * Upload a video file to the backend.
  * Returns the new video_id.
  */
-export async function uploadVideo(file: File): Promise<UploadResponse> {
+export async function uploadVideo(file: File, token: string): Promise<UploadResponse> {
   const formData = new FormData();
   formData.append("file", file);
 
@@ -22,17 +22,34 @@ export async function uploadVideo(file: File): Promise<UploadResponse> {
     "/api/upload-video",
     formData,
     {
-      headers: { "Content-Type": "multipart/form-data" },
+      headers: { Authorization: `Bearer ${token}` },
     }
   );
   return data;
 }
 
 /**
- * Trigger synchronous processing of an uploaded video.
+ * Start an audit or reconnect to the existing run for this upload.
  */
-export async function startProcessing(videoId: string): Promise<void> {
-  await apiClient.post(`/api/process-video/${videoId}`);
+export async function startProcessing(videoId: string, token: string): Promise<void> {
+  await apiClient.post(`/api/process-video/${videoId}`, undefined, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+export async function cancelProcessing(videoId: string, token: string): Promise<void> {
+  await apiClient.post(`/api/video/${videoId}/cancel`, undefined, {
+    headers: { Authorization: `Bearer ${token}` },
+    timeout: 15_000,
+  });
+}
+
+export async function getSavedDemo(token: string): Promise<string> {
+  const { data } = await apiClient.get<{ video_id: string }>("/api/demo", {
+    headers: { Authorization: `Bearer ${token}` },
+    timeout: 90_000,
+  });
+  return data.video_id;
 }
 
 /**
@@ -47,7 +64,7 @@ export async function getVideos(): Promise<Video[]> {
  * Fetch the current state of a video record.
  */
 export async function getVideo(videoId: string): Promise<Video> {
-  const { data } = await apiClient.get<Video>(`/api/video/${videoId}`);
+  const { data } = await apiClient.get<Video>(`/api/video/${videoId}`, { timeout: 15_000 });
   return data;
 }
 

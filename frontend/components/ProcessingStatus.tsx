@@ -1,14 +1,28 @@
 "use client";
 
+import type { AuditProgress } from "@/types";
+
 interface ProcessingStatusProps {
   message?: string;
   subMessage?: string;
+  progress?: AuditProgress | null;
 }
 
 export default function ProcessingStatus({
   message = "Analyzing video for OSHA violations...",
   subMessage = "Extracting frames and running AI detection",
+  progress,
 }: ProcessingStatusProps) {
+  if (progress?.stage === "queued") {
+    message = "Preparing your video...";
+    subMessage = "Reading the clip and selecting frames";
+  } else if (progress?.stage === "analyzing") {
+    message = "Analyzing sampled frames...";
+    subMessage = `${progress.frames_done} of ${progress.frames_total} frames checked`;
+  } else if (progress?.stage === "report") {
+    message = "Writing the safety report...";
+    subMessage = `${progress.frames_done} frames checked`;
+  }
   return (
     <div className="flex flex-col items-center justify-center py-14 gap-5">
       {/* Spinner */}
@@ -41,7 +55,7 @@ export default function ProcessingStatus({
       </div>
 
       {/* Text */}
-      <div className="text-center space-y-1.5">
+      <div className="text-center space-y-1.5" role="status">
         <p className="text-white font-semibold text-sm">{message}</p>
         <p className="text-gray-600 text-xs">{subMessage}</p>
       </div>

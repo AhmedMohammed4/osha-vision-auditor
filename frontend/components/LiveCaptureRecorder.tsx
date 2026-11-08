@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { MAX_VIDEO_SECONDS } from "@/lib/video-duration";
 
 interface LiveCaptureRecorderProps {
   onFileReady: (file: File) => void;
@@ -33,12 +34,15 @@ export default function LiveCaptureRecorder({ onFileReady, onReset, disabled = f
   const [recordingSeconds, setRecordingSeconds] = useState(0);
 
   useEffect(() => {
-    let timerId: ReturnType<typeof setInterval> | null = null;
-    if (captureState === "recording") {
-      timerId = setInterval(() => setRecordingSeconds((s) => s + 1), 1000);
-    }
+    if (captureState !== "recording") return;
+    const timerId = setInterval(() => setRecordingSeconds((s) => s + 1), 1000);
+    const stopAtLimit = setTimeout(() => {
+      const recorder = mediaRecorderRef.current;
+      if (recorder && recorder.state !== "inactive") recorder.stop();
+    }, (MAX_VIDEO_SECONDS - 1) * 1000);
     return () => {
-      if (timerId) clearInterval(timerId);
+      clearInterval(timerId);
+      clearTimeout(stopAtLimit);
     };
   }, [captureState]);
 
