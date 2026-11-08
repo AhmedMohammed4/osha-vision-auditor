@@ -6,7 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import VideoUploader from "@/components/VideoUploader";
 import LiveCaptureRecorder from "@/components/LiveCaptureRecorder";
 import ProcessingStatus from "@/components/ProcessingStatus";
-import { uploadVideo, startProcessing, getVideo } from "@/lib/api";
+import { uploadVideo, startProcessing, getVideo, warmUpBackend } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 
 type PageState = "idle" | "uploading" | "processing" | "error";
@@ -24,6 +24,10 @@ export default function UploadPage() {
   useEffect(() => {
     if (!loading && !user) router.replace("/auth");
   }, [user, loading, router]);
+
+  useEffect(() => {
+    if (user) void warmUpBackend().catch(() => {});
+  }, [user]);
 
   const { data: videoData } = useQuery({
     queryKey: ["video", videoId],
@@ -146,7 +150,10 @@ export default function UploadPage() {
               )}
             </div>
           ) : pageState === "uploading" ? (
-            <ProcessingStatus message="Uploading video..." subMessage="Securely transferring to storage" />
+            <ProcessingStatus
+              message="Uploading video..."
+              subMessage="Sending your video and waiting for the server"
+            />
           ) : (
             <ProcessingStatus message="Analyzing for violations..." subMessage="OpenAI reviewing sampled frames for OSHA violations" />
           )}
@@ -167,7 +174,7 @@ export default function UploadPage() {
                 <circle cx="6" cy="6" r="4.5" stroke="#555" strokeWidth="1"/>
                 <path d="M6 3.5V6L7.5 7.5" stroke="#555" strokeWidth="1" strokeLinecap="round"/>
               </svg>
-              Frame every 5s
+              Frame every 2s
             </span>
             <span className="flex items-center gap-1.5">
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none">

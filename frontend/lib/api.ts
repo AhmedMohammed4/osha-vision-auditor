@@ -6,6 +6,10 @@ const apiClient = axios.create({
   timeout: 300_000, // 5 min — processing can take time
 });
 
+export async function warmUpBackend(): Promise<void> {
+  await apiClient.get("/health", { timeout: 90_000 });
+}
+
 /**
  * Upload a video file to the backend.
  * Returns the new video_id.

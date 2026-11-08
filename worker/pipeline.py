@@ -126,22 +126,24 @@ def process_video(video_id: str) -> None:
             frm, ts = args
             return ts, frm, detect_violations(frm, ts)
 
+        def _store_findings(result: Tuple[float, np.ndarray, List[Dict[str, Any]]]) -> List[Dict[str, Any]]:
+            timestamp, frame, findings = result
+            frame_url = _encode_and_upload_frame(frame, video_id, timestamp, upload_frame)
+            for finding in findings:
+                finding["timestamp"] = timestamp
+                finding["frame_url"] = frame_url
+                finding["video_id"] = video_id
+            return findings
+
+        all_violations: List[Dict[str, Any]] = []
         with ThreadPoolExecutor(max_workers=_MAX_WORKERS) as executor:
             detection_results = list(executor.map(_detect, sampled_frames))
+            evidence_started = time.monotonic()
+            evidence_frames = (result for result in detection_results if result[2])
+            for findings in executor.map(_store_findings, evidence_frames):
+                all_violations.extend(findings)
 
-        # Step 6 — Upload violation frames and collect violations (ordered by timestamp)
-        all_violations: List[Dict[str, Any]] = []
-
-        for timestamp, frame, frame_violations in detection_results:
-            if frame_violations:
-                frame_url = _encode_and_upload_frame(frame, video_id, timestamp, upload_frame)
-                for v in frame_violations:
-                    v["timestamp"] = timestamp
-                    v["frame_url"] = frame_url
-                    v["video_id"] = video_id
-                all_violations.extend(frame_violations)
-                logger.debug(f"[{video_id}] t={timestamp:.1f}s: {len(frame_violations)} violation(s)")
-
+        logger.info("[%s] Saved evidence images in %.1fs", video_id, time.monotonic() - evidence_started)
         logger.info(
             f"[{video_id}] Analysis complete in {time.time() - start_time:.1f}s. "
             f"Sampled {sampled_count} frames, found {len(all_violations)} violations."
