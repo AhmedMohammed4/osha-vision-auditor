@@ -84,7 +84,8 @@ async def on_startup() -> None:
         logger.error("Please copy backend/.env.example to backend/.env and fill in values.")
     else:
         logger.info("OSHA Vision Auditor API started successfully.")
-        logger.info(f"Claude Vision detection: {'enabled' if os.getenv('ANTHROPIC_API_KEY') else 'DISABLED — set ANTHROPIC_API_KEY in backend/.env'}")
+        if not os.getenv("OPENAI_API_KEY"):
+            logger.warning("OpenAI video analysis is unavailable until OPENAI_API_KEY is set.")
 
 
 @app.get("/health", tags=["Health"])

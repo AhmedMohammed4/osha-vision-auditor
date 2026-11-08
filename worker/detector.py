@@ -1,25 +1,32 @@
-"""
-Claude Vision-based OSHA violation detector.
-
-Uses Claude claude-sonnet-4-6 to analyze construction site frames against
-the full OSHA 29 CFR 1926 construction safety standard.
-"""
+"""Analyze sampled worksite video frames with OpenAI vision."""
 
 import base64
-import json
 import logging
-import os
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Literal
 
-import anthropic
 import cv2
 import numpy as np
+from pydantic import BaseModel, Field
 
-from .osha_citations import hydrate_citation
+from .openai_client import MODEL, get_openai_client
+from .osha_citations import OSHA_CITATIONS, hydrate_citation
 
 logger = logging.getLogger(__name__)
 
-_SYSTEM_PROMPT = """You are an expert OSHA 29 CFR 1926 construction safety inspector analyzing a single video frame from a construction site.
+
+class _Violation(BaseModel):
+    violation_type: str
+    description: str
+    osha_citation: str
+    severity: Literal["critical", "high", "medium", "low"]
+    confidence: float = Field(ge=0, le=1)
+
+
+class _FrameAnalysis(BaseModel):
+    violations: list[_Violation]
+
+
+_SYSTEM_PROMPT = """Review a single worksite video frame for visible safety hazards.
 
 Examine the image carefully and identify ALL visible safety violations. Check across these categories:
 
@@ -57,117 +64,52 @@ Examine the image carefully and identify ALL visible safety violations. Check ac
 **Fire Safety:**
 - Blocked fire extinguisher access or improper flammable storage (29 CFR 1926.150) → violation_type: "fire_hazard"
 
-Respond ONLY with a valid JSON array. Each element must have exactly these fields:
-- "violation_type": snake_case string from the list above
-- "description": specific description of what you observe in this image
-- "osha_citation": the relevant OSHA standard (e.g., "29 CFR 1926.100")
-- "severity": one of "critical", "high", "medium", or "low"
-- "confidence": float 0.0–1.0
-
-If no violations are visible, respond with: []
-
-Example:
-[
-  {
-    "violation_type": "no_hard_hat",
-    "description": "Worker in foreground not wearing hard hat while operating in active construction zone",
-    "osha_citation": "29 CFR 1926.100",
-    "severity": "high",
-    "confidence": 0.95
-  }
-]"""
+Use the listed violation types. Describe the visible evidence, cite the relevant
+standard, and assign a severity and confidence. Include only findings supported
+by the frame. If no hazards are visible, return an empty violations list."""
 
 
 def detect_violations(frame: np.ndarray, timestamp: float) -> List[Dict[str, Any]]:
-    """
-    Analyze a video frame for OSHA violations using Claude Vision.
-
-    Args:
-        frame: BGR numpy array from OpenCV.
-        timestamp: Frame timestamp in seconds (for logging).
-
-    Returns:
-        List of violation dicts with keys:
-            violation_type, description, osha_citation, severity, confidence
-        Returns empty list if API key is missing or any error occurs.
-    """
-    api_key = os.getenv("ANTHROPIC_API_KEY")
-    if not api_key:
-        logger.warning("ANTHROPIC_API_KEY not set — skipping Claude vision analysis.")
-        return []
-
-    # Resize to max 768px wide — reduces token cost ~60% vs full HD
+    """Return the findings for a frame, raising if the frame cannot be analyzed."""
+    # Keep image input small enough for interactive processing.
     h, w = frame.shape[:2]
-    if w > 768:
-        scale = 768 / w
-        frame = cv2.resize(frame, (768, int(h * scale)), interpolation=cv2.INTER_AREA)
+    if max(h, w) > 768:
+        scale = 768 / max(h, w)
+        frame = cv2.resize(frame, (max(1, int(w * scale)), max(1, int(h * scale))), interpolation=cv2.INTER_AREA)
 
-    # JPEG-encode frame and convert to base64
     success, buffer = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 80])
     if not success:
-        logger.error(f"Failed to encode frame at t={timestamp:.1f}s")
-        return []
+        raise RuntimeError(f"Failed to encode frame at {timestamp:.1f}s")
 
     image_b64 = base64.standard_b64encode(buffer.tobytes()).decode("utf-8")
+    response = get_openai_client().responses.parse(
+        model=MODEL,
+        instructions=_SYSTEM_PROMPT,
+        input=[
+            {
+                "role": "user",
+                "content": [
+                    {"type": "input_text", "text": "Analyze this worksite frame."},
+                    {
+                        "type": "input_image",
+                        "image_url": f"data:image/jpeg;base64,{image_b64}",
+                        "detail": "high",
+                    },
+                ],
+            }
+        ],
+        text_format=_FrameAnalysis,
+        max_output_tokens=1024,
+        store=False,
+    )
+    analysis = response.output_parsed
+    if response.status != "completed" or analysis is None:
+        raise RuntimeError(f"OpenAI did not return a complete analysis for frame {timestamp:.1f}s")
 
-    try:
-        client = anthropic.Anthropic(api_key=api_key)
-        response = client.messages.create(
-            model="claude-sonnet-4-6",
-            max_tokens=1024,
-            system=_SYSTEM_PROMPT,
-            messages=[
-                {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "image",
-                            "source": {
-                                "type": "base64",
-                                "media_type": "image/jpeg",
-                                "data": image_b64,
-                            },
-                        },
-                        {
-                            "type": "text",
-                            "text": "Analyze this construction site frame for OSHA violations. Respond with JSON only.",
-                        },
-                    ],
-                }
-            ],
-        )
-
-        raw_text = response.content[0].text.strip()
-
-        # Strip markdown code fences if Claude includes them
-        if raw_text.startswith("```"):
-            lines = raw_text.splitlines()
-            # Remove opening fence (```json or ```) and closing fence (```)
-            start = 1
-            end = len(lines) - 1 if lines[-1].strip() == "```" else len(lines)
-            raw_text = "\n".join(lines[start:end]).strip()
-
-        violations = json.loads(raw_text)
-
-        if not isinstance(violations, list):
-            logger.warning(
-                f"t={timestamp:.1f}s: Claude returned non-list JSON — treating as no violations"
-            )
-            return []
-
-        normalized = [hydrate_citation(v) for v in violations if isinstance(v, dict)]
-
-        logger.info(
-            f"t={timestamp:.1f}s: Claude detected {len(normalized)} violation(s)"
-        )
-        return normalized
-
-    except json.JSONDecodeError as exc:
-        logger.error(f"t={timestamp:.1f}s: JSON parse error from Claude: {exc}")
-        return []
-    except anthropic.APIError as exc:
-        logger.error(f"t={timestamp:.1f}s: Anthropic API error: {exc}")
-        return []
-    except Exception as exc:
-        logger.error(f"t={timestamp:.1f}s: Unexpected error in detect_violations: {exc}")
-        return []
+    findings = []
+    for violation in analysis.violations:
+        if violation.violation_type not in OSHA_CITATIONS:
+            raise RuntimeError(f"OpenAI returned an unknown finding type for frame {timestamp:.1f}s")
+        findings.append(hydrate_citation(violation.model_dump()))
+    logger.info("Frame %.1fs: found %d violation(s)", timestamp, len(findings))
+    return findings

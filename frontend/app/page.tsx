@@ -36,7 +36,7 @@ No additional hardware. No manual review. Every violation is timestamped and doc
     label: "What We Built",
     content: {
       heading: "Upload a video. Get a compliance report.",
-      body: `An end-to-end pipeline: upload any worksite video, and the system samples a frame every two seconds, running each through Claude AI Vision. It checks the full scene against OSHA 29 CFR 1926 construction safety categories including PPE, fall protection, ladders, scaffolding, electrical, excavation, fire safety, and more.
+      body: `An end-to-end pipeline: upload any worksite video, and the system samples a frame every two seconds, running each through OpenAI vision. It checks the full scene against OSHA 29 CFR 1926 construction safety categories including PPE, fall protection, ladders, scaffolding, electrical, excavation, fire safety, and more.
 
 Every violation gets a timestamp. Risk is scored 0–100. The system generates a structured OSHA-aligned report with corrective recommendations.
 
@@ -61,7 +61,7 @@ The current system handles post-shift compliance review. The next version handle
 const STATS = [
   { value: 1069, suffix: "", label: "US construction fatalities", sublabel: "Bureau of Labor Statistics, 2023" },
   { value: 60, suffix: "%", label: "were preventable with PPE", sublabel: "OSHA incident data" },
-  { value: 14, suffix: "+", label: "OSHA violation types detected", sublabel: "Claude AI Vision" },
+  { value: 14, suffix: "+", label: "OSHA violation types detected", sublabel: "OpenAI vision" },
   { value: 170, suffix: "B", label: "annual US injury cost", sublabel: "National Safety Council" },
 ];
 
@@ -81,7 +81,7 @@ const STEPS = [
   {
     n: "02",
     title: "AI scans every frame",
-    desc: "Claude AI Vision inspects each frame against OSHA 29 CFR 1926 standards: PPE, fall protection, scaffolding, electrical, excavation, and more.",
+    desc: "OpenAI vision inspects each frame against OSHA 29 CFR 1926 standards: PPE, fall protection, scaffolding, electrical, excavation, and more.",
     icon: (
       <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
         <circle cx="11" cy="11" r="8.5" stroke="rgba(255,255,255,0.75)" strokeWidth="1.4"/>
@@ -125,7 +125,7 @@ const CATCHES = [
   },
   {
     title: "OSHA safety report",
-    desc: "Claude AI turns raw violation data into a structured OSHA-aligned brief with corrective actions and regulation citations.",
+    desc: "OpenAI turns raw violation data into a structured OSHA-aligned brief with corrective actions and regulation citations.",
     badge: null,
     badgeText: "Report",
   },

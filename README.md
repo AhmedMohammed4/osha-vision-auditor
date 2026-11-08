@@ -7,7 +7,7 @@ AI-powered worksite safety compliance inspector. Upload a construction site vide
 ## Features
 
 - **Video Upload** — Drag-and-drop with size validation
-- **YOLOv8 Detection** — Person detection + PPE color analysis
+- **OpenAI Vision** — Analyzes sampled frames for visible worksite hazards
 - **OSHA Rule Engine** — Modular rule system for helmet and vest violations
 - **Risk Scoring** — Weighted 0–100 score based on violation severity
 - **AI Safety Report** — OpenAI-generated OSHA compliance report
@@ -88,9 +88,8 @@ Edit `backend/.env`:
 ```env
 SUPABASE_URL=https://your-project-id.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-OPENAI_API_KEY=sk-your-openai-key    # optional — fallback report used if missing
-PPE_MODEL_PATH=                       # optional — see PPE Model section below
-VIDEO_MAX_DURATION=120
+OPENAI_API_KEY=
+OPENAI_MODEL=gpt-5.4-mini
 ```
 
 Start the backend (run from the **project root** `osha-vision-auditor/`):
@@ -131,33 +130,14 @@ Open: http://localhost:3000
 
 ---
 
-## Step 4 — PPE Model (Optional but Recommended)
-
-By default, the system uses a **color-heuristic** to detect helmets and vests — good for demo purposes. For better accuracy, use a real PPE model:
-
-**Option A — Download from Hugging Face:**
-```bash
-pip install huggingface_hub
-python -c "
-from huggingface_hub import hf_hub_download
-path = hf_hub_download('keremberke/yolov8n-hard-hat-detection', 'best.pt')
-print(path)
-"
-```
-
-Copy the printed path to `backend/.env`:
-```env
-PPE_MODEL_PATH=/path/to/best.pt
-```
-
-**Option B — Use any YOLOv8 PPE model** that detects classes including: `hardhat`, `helmet`, `safety_vest`, or `vest`.
+For Render, set `OPENAI_API_KEY` in the backend service’s Environment tab before deploying. Use an OpenAI API project key with API access enabled.
 
 ---
 
 ## Demo Instructions
 
 1. Find a construction site video (YouTube, stock footage, or your own):
-   - 30–120 seconds long
+   - 5–15 seconds for a live demo
    - Workers visible with or without helmets/vests
    - Good for testing: any clip where some workers lack PPE
 
@@ -165,7 +145,7 @@ PPE_MODEL_PATH=/path/to/best.pt
 
 3. Upload via the web interface at http://localhost:3000
 
-4. Watch the processing animation (~30–60 seconds for a 1-minute video)
+4. Wait for the sampled frames to be analyzed and the report to be generated
 
 5. Explore the dashboard:
    - Click violation markers on the timeline
@@ -207,7 +187,7 @@ osha-vision-auditor/
 │
 ├── worker/                     # Processing pipeline
 │   ├── pipeline.py            # Orchestrator: process_video()
-│   ├── detector.py            # YOLOv8 PPE detection
+│   ├── detector.py            # OpenAI vision analysis
 │   ├── rule_engine.py         # OSHA violation rules
 │   ├── risk_scorer.py         # Risk score calculation
 │   └── llm_report.py          # OpenAI report generation
@@ -260,9 +240,9 @@ osha-vision-auditor/
 - Ensure FFmpeg is installed and on PATH
 - Try converting your video: `ffmpeg -i input.mov output.mp4`
 
-**No violations detected:**
-- Without a real PPE model, the heuristic works best on videos where workers wear clearly visible colored hard hats and hi-viz vests
-- Set `PPE_MODEL_PATH` for production-grade detection
+**Video analysis fails:**
+- Check that `OPENAI_API_KEY` is set on the backend and that its API project can access the selected model.
+- Check the backend logs for provider errors.
 
 **Supabase upload fails:**
 - Verify the `videos` and `frames` buckets exist and are set to **Public**

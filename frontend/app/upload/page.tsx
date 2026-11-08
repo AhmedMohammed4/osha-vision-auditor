@@ -84,7 +84,7 @@ export default function UploadPage() {
             Run a worksite audit
           </h1>
           <p className="text-gray-300 text-sm leading-relaxed max-w-sm mx-auto">
-            Drop in any construction video. Claude AI scans every frame for OSHA
+            Drop in any construction video. OpenAI reviews sampled frames for OSHA
             violations, then scores the risk and generates a report.
           </p>
         </div>
@@ -144,7 +144,7 @@ export default function UploadPage() {
           ) : pageState === "uploading" ? (
             <ProcessingStatus message="Uploading video..." subMessage="Securely transferring to storage" />
           ) : (
-            <ProcessingStatus message="Analyzing for violations..." subMessage="Claude AI scanning each frame for OSHA violations" />
+            <ProcessingStatus message="Analyzing for violations..." subMessage="OpenAI reviewing sampled frames for OSHA violations" />
           )}
         </div>
 
@@ -156,7 +156,7 @@ export default function UploadPage() {
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
                 <path d="M6 1L11 3.5V8.5L6 11L1 8.5V3.5L6 1Z" stroke="#555" strokeWidth="1" strokeLinejoin="round"/>
               </svg>
-              Claude Vision AI
+              OpenAI vision
             </span>
             <span className="flex items-center gap-1.5">
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
@@ -170,7 +170,7 @@ export default function UploadPage() {
                 <rect x="1.5" y="2" width="9" height="8" rx="1.5" stroke="#555" strokeWidth="1"/>
                 <path d="M3.5 5H8.5M3.5 7H6.5" stroke="#555" strokeWidth="1" strokeLinecap="round"/>
               </svg>
-              Claude AI report
+              OpenAI report
             </span>
             <span className="flex items-center gap-1.5">
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none">

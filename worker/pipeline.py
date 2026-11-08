@@ -9,7 +9,7 @@ import logging
 import os
 import tempfile
 import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Dict, List, Tuple
 
 import cv2
@@ -21,8 +21,7 @@ from .llm_report import generate_report
 
 logger = logging.getLogger(__name__)
 
-# Concurrent Claude Vision API calls — I/O-bound HTTP so true parallelism via threads.
-# 8 workers keeps throughput high without hammering rate limits.
+# Analyze frames concurrently to keep short clips interactive.
 _MAX_WORKERS = 8
 
 # Sample 1 frame every N seconds of video.
@@ -39,7 +38,7 @@ def process_video(video_id: str) -> None:
         2. Download video bytes from Supabase Storage.
         3. Write to a temporary file for OpenCV.
         4. Seek directly to target frames (1 per 2s) — no wasted reads.
-        5. Run Claude Vision on all sampled frames concurrently.
+        5. Analyze sampled frames concurrently.
         6. Upload violation frames to Supabase Storage.
         7. Bulk insert violations into DB.
         8. Compute risk score.
@@ -113,28 +112,23 @@ def process_video(video_id: str) -> None:
         cap.release()
 
         sampled_count = len(sampled_frames)
+        if not sampled_count:
+            raise RuntimeError("No readable video frames were available for analysis")
         logger.info(
             f"[{video_id}] Collected {sampled_count} frames in "
             f"{time.time() - start_time:.1f}s. "
-            f"Running Claude Vision concurrently (workers={_MAX_WORKERS})..."
+            f"Running OpenAI vision concurrently (workers={_MAX_WORKERS})..."
         )
 
-        # Step 5 — Run Claude Vision on all frames concurrently
+        # A frame failure must not become a completed audit with a low score.
         def _detect(args: Tuple[np.ndarray, float]) -> Tuple[float, np.ndarray, List[Dict[str, Any]]]:
             frm, ts = args
             return ts, frm, detect_violations(frm, ts)
 
-        detection_results: List[Tuple[float, np.ndarray, List[Dict[str, Any]]]] = []
         with ThreadPoolExecutor(max_workers=_MAX_WORKERS) as executor:
-            futures = {executor.submit(_detect, item): item for item in sampled_frames}
-            for future in as_completed(futures):
-                try:
-                    detection_results.append(future.result())
-                except Exception as exc:
-                    logger.error(f"[{video_id}] Detection error: {exc}")
+            detection_results = list(executor.map(_detect, sampled_frames))
 
         # Step 6 — Upload violation frames and collect violations (ordered by timestamp)
-        detection_results.sort(key=lambda x: x[0])
         all_violations: List[Dict[str, Any]] = []
 
         for timestamp, frame, frame_violations in detection_results:
@@ -190,15 +184,13 @@ def process_video(video_id: str) -> None:
             f"Risk score: {risk_score}"
         )
 
-    except Exception as exc:
-        import traceback
-        error_detail = traceback.format_exc()
-        logger.error(f"[{video_id}] Pipeline failed: {exc}\n{error_detail}")
+    except Exception:
+        logger.exception("Pipeline failed for video %s", video_id)
         try:
             from backend.services.supabase_client import get_supabase as _get_sb
             _get_sb().table("videos").update({
                 "status": "failed",
-                "report": f"PIPELINE ERROR:\n{error_detail}",
+                "report": "Video analysis could not finish.",
             }).eq("id", video_id).execute()
         except Exception:
             pass

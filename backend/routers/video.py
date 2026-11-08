@@ -90,7 +90,7 @@ async def upload_video_endpoint(file: UploadFile = File(...)) -> UploadResponse:
 @router.post("/process-video/{video_id}", response_model=ProcessResponse)
 async def process_video_endpoint(video_id: str, background_tasks: BackgroundTasks) -> ProcessResponse:
     """
-    Trigger background processing of an uploaded video.
+    Start background OpenAI analysis of an uploaded video.
 
     Returns immediately after queueing the pipeline. The frontend polls
     GET /video/{video_id} until status changes to 'completed' or 'failed'.
@@ -101,6 +101,9 @@ async def process_video_endpoint(video_id: str, background_tasks: BackgroundTask
     Returns:
         ProcessResponse confirming processing has been queued.
     """
+    if not os.getenv("OPENAI_API_KEY"):
+        raise HTTPException(status_code=503, detail="Video analysis is not configured yet.")
+
     # Verify the video exists and is in a processable state
     supabase = get_supabase()
     try:

@@ -1,7 +1,7 @@
 """
-OSHA rule engine — pass-through for Claude Vision violations.
+OSHA rule engine — pass-through for OpenAI vision violations.
 
-Claude already identifies violations directly; this module is retained
+The vision model already identifies violations directly; this module is retained
 for compatibility but is no longer called by the pipeline.
 """
 
@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 def evaluate_frame(violations: List[Dict[str, Any]], timestamp: float) -> List[Dict[str, Any]]:
     """
-    Attach timestamp to each violation from Claude Vision output.
+    Attach timestamp to each violation from OpenAI vision output.
 
     Args:
         violations: List of violation dicts returned by detect_violations().

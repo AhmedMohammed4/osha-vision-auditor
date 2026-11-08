@@ -1,5 +1,5 @@
 """
-LLM-powered OSHA safety report generator using Claude API.
+Generate a safety report from the video analysis with OpenAI.
 """
 
 import logging
@@ -7,7 +7,9 @@ import os
 from collections import Counter
 from typing import Any, Dict, List
 
-import anthropic
+from openai import OpenAIError
+
+from .openai_client import MODEL, get_openai_client
 
 logger = logging.getLogger(__name__)
 
@@ -18,9 +20,9 @@ def generate_report(
     risk_score: float,
 ) -> str:
     """
-    Generate a professional OSHA safety report using Claude claude-sonnet-4-6.
+    Generate a safety report using OpenAI.
 
-    Sends a structured violation summary to Claude and returns a formatted
+    Sends a structured violation summary and returns a formatted
     safety report with assessment, issues, and recommendations.
 
     Args:
@@ -31,9 +33,9 @@ def generate_report(
     Returns:
         Formatted safety report string.
     """
-    api_key = os.getenv("ANTHROPIC_API_KEY")
+    api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
-        logger.warning("ANTHROPIC_API_KEY not set — returning default report.")
+        logger.warning("OPENAI_API_KEY is missing. Using the findings summary.")
         return _default_report(violations, risk_score)
 
     # Count violations by type for the prompt
@@ -55,7 +57,7 @@ def generate_report(
 
     severity = _severity_label(risk_score)
 
-    prompt = f"""You are a certified OSHA safety compliance inspector. Analyze the following automated video inspection results and produce a professional safety report.
+    prompt = f"""Summarize the following automated worksite video findings for a safety reviewer.
 
 INSPECTION RESULTS:
 - Video ID: {video_id}
@@ -69,33 +71,31 @@ INSPECTION RESULTS:
 Provide a structured report with EXACTLY these three sections:
 
 1. OVERALL RISK ASSESSMENT
-Write 2–3 sentences assessing the overall safety compliance level based on the score and violation types found.
+Write 2–3 sentences about the risk score and hazards identified in the sampled frames.
 
 2. TOP SAFETY ISSUES
-List the 3 most critical safety issues identified as bullet points. Be specific to the violations found and reference the OSHA standards involved.
+List up to 3 of the most critical findings as bullet points. If there are no findings, say so. Do not infer overall compliance from a lack of findings.
 
 3. RECOMMENDED ACTIONS
-List 5 concrete, actionable recommendations to improve compliance. Reference relevant OSHA standards where applicable (e.g., 29 CFR 1926.100 for head protection).
+List up to 5 concrete follow-up actions based on the findings. Reference the provided OSHA standards where applicable.
 
 Keep the tone professional and concise. Do not include introductory text before section 1."""
 
     try:
-        client = anthropic.Anthropic(api_key=api_key)
-        response = client.messages.create(
-            model="claude-sonnet-4-6",
-            max_tokens=600,
-            messages=[{"role": "user", "content": prompt}],
+        response = get_openai_client().responses.create(
+            model=MODEL,
+            input=prompt,
+            max_output_tokens=600,
+            store=False,
         )
-        report_text = response.content[0].text.strip()
-        logger.info(f"LLM report generated for video {video_id} ({len(report_text)} chars)")
-        return report_text
-
-    except anthropic.APIError as exc:
-        logger.error(f"Anthropic API error for video {video_id}: {exc}")
-        return _default_report(violations, risk_score)
-    except Exception as exc:
-        logger.error(f"Unexpected error generating report for video {video_id}: {exc}")
-        return _default_report(violations, risk_score)
+        report_text = response.output_text.strip()
+        if response.status == "completed" and report_text:
+            logger.info("OpenAI report generated for video %s", video_id)
+            return report_text
+        logger.warning("OpenAI report was incomplete for video %s", video_id)
+    except OpenAIError:
+        logger.exception("OpenAI report request failed for video %s", video_id)
+    return _default_report(violations, risk_score)
 
 
 def _severity_label(score: float) -> str:
@@ -110,7 +110,7 @@ def _severity_label(score: float) -> str:
 
 def _default_report(violations: List[Dict[str, Any]], risk_score: float) -> str:
     """
-    Fallback report when Claude API is unavailable.
+    Fallback report when OpenAI is unavailable.
     Produces a deterministic text-based report from violation data.
     """
     severity = _severity_label(risk_score)
@@ -118,12 +118,10 @@ def _default_report(violations: List[Dict[str, Any]], risk_score: float) -> str:
 
     if not violations:
         return f"""1. OVERALL RISK ASSESSMENT
-This worksite inspection recorded a risk score of {risk_score}/100, classified as {severity}. No violations were detected during the inspected period, indicating strong compliance with OSHA 29 CFR 1926 construction safety standards.
+The automated review scored the sampled frames {risk_score}/100 ({severity}). OpenAI report generation was unavailable, so this summary uses the recorded findings.
 
 2. TOP SAFETY ISSUES
-• No violations detected — all observed workers and conditions met OSHA safety requirements.
-• No PPE deficiencies identified during this inspection period.
-• No environmental or equipment hazards observed.
+• The review recorded no findings in the sampled frames.
 
 3. RECOMMENDED ACTIONS
 • Continue enforcing mandatory PPE policies at all site entry points per 29 CFR 1926.100.
@@ -137,10 +135,8 @@ This worksite inspection recorded a risk score of {risk_score}/100, classified a
         f"• {vtype.replace('_', ' ').title()}: {count} instance(s) detected"
         for vtype, count in top_violations
     )
-    compliance_label = "significant" if risk_score >= 50 else "moderate"
-
     return f"""1. OVERALL RISK ASSESSMENT
-This worksite inspection recorded a risk score of {risk_score}/100, classified as {severity}. A total of {len(violations)} violations were detected across {len(type_counts)} violation categories, indicating {compliance_label} non-compliance with OSHA 29 CFR 1926 construction safety standards.
+The automated review scored the sampled frames {risk_score}/100 ({severity}) and recorded {len(violations)} findings across {len(type_counts)} categories. OpenAI report generation was unavailable, so this summary uses the recorded findings.
 
 2. TOP SAFETY ISSUES
 {issues_text}
