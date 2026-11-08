@@ -90,7 +90,7 @@ async def upload_video_endpoint(file: UploadFile = File(...)) -> UploadResponse:
 @router.post("/process-video/{video_id}", response_model=ProcessResponse)
 async def process_video_endpoint(video_id: str, background_tasks: BackgroundTasks) -> ProcessResponse:
     """
-    Start background OpenAI analysis of an uploaded video.
+    Start background OpenAI analysis and record safe failure details.
 
     Returns immediately after queueing the pipeline. The frontend polls
     GET /video/{video_id} until status changes to 'completed' or 'failed'.

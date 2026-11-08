@@ -18,6 +18,7 @@ import numpy as np
 from .detector import detect_violations
 from .risk_scorer import compute_risk_score
 from .llm_report import generate_report
+from .openai_client import analysis_failure_message
 
 logger = logging.getLogger(__name__)
 
@@ -184,13 +185,13 @@ def process_video(video_id: str) -> None:
             f"Risk score: {risk_score}"
         )
 
-    except Exception:
+    except Exception as error:
         logger.exception("Pipeline failed for video %s", video_id)
         try:
             from backend.services.supabase_client import get_supabase as _get_sb
             _get_sb().table("videos").update({
                 "status": "failed",
-                "report": "Video analysis could not finish.",
+                "report": analysis_failure_message(error),
             }).eq("id", video_id).execute()
         except Exception:
             pass

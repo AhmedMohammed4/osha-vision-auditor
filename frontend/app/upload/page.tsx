@@ -42,7 +42,11 @@ export default function UploadPage() {
     }
     if (videoData?.status === "failed") {
       setPageState("error");
-      setErrorMessage("Video processing failed. Please try again.");
+      setErrorMessage(
+        videoData.report?.startsWith("Video analysis could not finish.")
+          ? videoData.report
+          : "Video processing failed. Please try again."
+      );
     }
   }, [videoData, videoId, router]);
 
