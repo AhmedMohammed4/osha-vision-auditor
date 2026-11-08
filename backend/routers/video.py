@@ -13,6 +13,7 @@ from supabase import Client
 from worker.pipeline import process_video
 
 from ..models.schemas import UploadResponse, ProcessResponse, SavedDemo, Video, Violation, VideoStatus
+from ..services.audit_copy import public_audit_text
 from ..services.audit_jobs import expire_stalled_run, utc_now
 from ..services.auth import require_user_id
 from ..services.supabase_client import get_supabase
@@ -103,7 +104,7 @@ def process_video_endpoint(
     owner_id: str = Depends(require_user_id),
 ) -> ProcessResponse:
     """
-    Start background OpenAI analysis and record safe failure details.
+    Start a background video audit.
 
     Returns immediately after queueing the pipeline. The frontend polls
     GET /video/{video_id} until status changes to 'completed' or 'failed'.
@@ -211,7 +212,7 @@ def get_video(video_id: str) -> Video:
         filename=row["filename"],
         status=VideoStatus(row["status"]),
         risk_score=row.get("risk_score"),
-        report=row.get("report"),
+        report=public_audit_text(row.get("report")),
         video_url=row.get("video_url"),
         duration=row.get("duration"),
         uploaded_at=str(row.get("uploaded_at", "")),
@@ -242,7 +243,7 @@ def list_videos() -> List[Video]:
             filename=row["filename"],
             status=VideoStatus(row["status"]),
             risk_score=row.get("risk_score"),
-            report=row.get("report"),
+            report=public_audit_text(row.get("report")),
             video_url=row.get("video_url"),
             duration=row.get("duration"),
             uploaded_at=str(row.get("uploaded_at", "")),
@@ -282,7 +283,7 @@ def get_violations(video_id: str) -> List[Violation]:
             violation_type=row["violation_type"],
             confidence=row["confidence"],
             frame_url=row.get("frame_url"),
-            description=row.get("description"),
+            description=public_audit_text(row.get("description")),
         )
         for row in result.data
     ]

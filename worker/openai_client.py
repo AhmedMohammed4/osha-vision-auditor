@@ -16,18 +16,18 @@ def get_openai_client() -> OpenAI:
 def analysis_failure_message(error: Exception) -> str:
     """Turn provider failures into messages safe to store with an audit."""
     if isinstance(error, APIConnectionError):
-        return "Video analysis could not finish. OpenAI could not be reached."
+        return "Video analysis could not finish. The analysis service could not be reached."
     if not isinstance(error, APIStatusError):
         return "Video analysis could not finish."
 
     if error.status_code == 401:
-        detail = "OpenAI rejected the API key."
+        detail = "The analysis service rejected the configured credentials."
     elif error.status_code in (403, 404):
-        detail = "The OpenAI project could not access the selected model."
+        detail = "The configured analysis model is unavailable."
     elif error.code in ("insufficient_quota", "credit_balance_exhausted", "billing_hard_limit_reached"):
-        detail = "The OpenAI project has no available API credits."
+        detail = "The analysis service has no available API credits."
     elif error.status_code == 429:
-        detail = "OpenAI rate-limited this request. Try again shortly."
+        detail = "The analysis service is busy. Try again shortly."
     else:
-        detail = f"OpenAI returned HTTP {error.status_code}."
+        detail = f"The analysis service returned HTTP {error.status_code}."
     return f"Video analysis could not finish. {detail}"

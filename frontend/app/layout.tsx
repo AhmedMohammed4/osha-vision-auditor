@@ -13,7 +13,7 @@ const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], variable: "--font-space
 
 export const metadata: Metadata = {
   title: "OSHA Vision Auditor",
-  description: "AI-powered worksite safety compliance inspection",
+  description: "Worksite video review and safety reports",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

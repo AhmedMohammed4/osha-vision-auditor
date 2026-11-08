@@ -10,7 +10,7 @@ interface ProcessingStatusProps {
 
 export default function ProcessingStatus({
   message = "Analyzing video for OSHA violations...",
-  subMessage = "Extracting frames and running AI detection",
+  subMessage = "Extracting and reviewing sampled frames",
   progress,
 }: ProcessingStatusProps) {
   if (progress?.stage === "queued") {

@@ -277,14 +277,14 @@ export default function DashboardPage() {
             onViolationClick={handleViolationClick}
           />
 
-          {/* AI Safety Report */}
+          {/* Safety Report */}
           {reportData?.report && (
             <div className="card">
               <button
                 onClick={() => setReportExpanded((v) => !v)}
                 className="w-full flex items-center justify-between text-left group"
               >
-                <p className="section-label">AI Safety Report</p>
+                <p className="section-label">Safety Report</p>
                 <div className="flex items-center gap-1.5 text-gray-600 group-hover:text-gray-400
                                 transition-colors text-xs">
                   {reportExpanded ? "Collapse" : "Expand"}

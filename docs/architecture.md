@@ -32,7 +32,7 @@
    │  5. OSHA rule engine → violations           │
    │  6. Upload violation frames                 │
    │  7. Compute risk score                      │
-   │  8. Generate LLM report (OpenAI)           │
+   │  8. Generate safety report                │
    │  9. Update DB: status=completed             │
    └─────────────────────────────────────────────┘
 ```
@@ -112,4 +112,4 @@ score = min(100, (actual / max_possible) × 100)
 | `worker/detector.py` | YOLOv8 person + PPE detection |
 | `worker/rule_engine.py` | OSHA violation rules |
 | `worker/risk_scorer.py` | Weighted risk calculation |
-| `worker/llm_report.py` | OpenAI safety report generation |
+| `worker/llm_report.py` | Safety report generation |

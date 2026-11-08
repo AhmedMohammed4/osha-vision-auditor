@@ -1,16 +1,16 @@
 # OSHA Vision Auditor
 
-AI-powered worksite safety compliance inspector. Upload a construction site video and automatically detect OSHA PPE violations (missing hard hats, safety vests), get a risk score, and receive an AI-generated safety report.
+Worksite video review for construction safety. Upload a clip to flag visible hazards, calculate a risk score, and generate a report with references to OSHA standards.
 
 ---
 
 ## Features
 
 - **Video Upload** — Drag-and-drop with size validation
-- **OpenAI Vision** — Analyzes sampled frames for visible worksite hazards
+- **Frame analysis** — Reviews sampled frames for visible worksite hazards
 - **OSHA Rule Engine** — Modular rule system for helmet and vest violations
 - **Risk Scoring** — Weighted 0–100 score based on violation severity
-- **AI Safety Report** — OpenAI-generated OSHA compliance report
+- **Safety report** — Summarizes findings and suggested corrective actions
 - **Interactive Dashboard** — Video player with clickable violation timestamps
 - **Violations Timeline** — Visual timeline of when violations occurred
 - **Supabase Backend** — PostgreSQL + Storage for all data
@@ -88,9 +88,9 @@ Edit `backend/.env`:
 ```env
 SUPABASE_URL=https://your-project-id.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-OPENAI_API_KEY=
-OPENAI_MODEL=gpt-5.4-mini
 ```
+
+Set the analysis API credential listed in `backend/.env.example`. The model setting in that file is optional.
 
 Start the backend (run from the **project root** `osha-vision-auditor/`):
 ```bash
@@ -130,7 +130,7 @@ Open: http://localhost:3000
 
 ---
 
-For Render, set `OPENAI_API_KEY` in the backend service’s Environment tab before deploying. Use an OpenAI API project key with API access enabled.
+For Render, set the backend variables from `backend/.env.example` in the service’s Environment tab. Use a project key with access to the configured model.
 
 ---
 
@@ -150,7 +150,7 @@ For Render, set `OPENAI_API_KEY` in the backend service’s Environment tab befo
 5. Explore the dashboard:
    - Click violation markers on the timeline
    - Click timestamps in the violations table to seek the video
-   - Expand the AI Safety Report section
+   - Expand the Safety Report section
 
 ---
 
@@ -187,10 +187,10 @@ osha-vision-auditor/
 │
 ├── worker/                     # Processing pipeline
 │   ├── pipeline.py            # Orchestrator: process_video()
-│   ├── detector.py            # OpenAI vision analysis
+│   ├── detector.py            # Sampled frame analysis
 │   ├── rule_engine.py         # OSHA violation rules
 │   ├── risk_scorer.py         # Risk score calculation
-│   └── llm_report.py          # OpenAI report generation
+│   └── llm_report.py          # Safety report generation
 │
 ├── frontend/                   # Next.js 14 frontend
 │   ├── app/
@@ -241,7 +241,7 @@ osha-vision-auditor/
 - Try converting your video: `ffmpeg -i input.mov output.mp4`
 
 **Video analysis fails:**
-- Check that `OPENAI_API_KEY` is set on the backend and that its API project can access the selected model.
+- Check that the backend analysis credential is set and its project can access the selected model.
 - Check the backend logs for provider errors.
 
 **Supabase upload fails:**

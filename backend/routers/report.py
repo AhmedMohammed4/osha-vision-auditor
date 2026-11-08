@@ -7,6 +7,7 @@ import logging
 from fastapi import APIRouter, HTTPException
 
 from ..models.schemas import ReportResponse
+from ..services.audit_copy import public_audit_text
 from ..services.supabase_client import get_supabase
 
 logger = logging.getLogger(__name__)
@@ -38,7 +39,7 @@ def get_report(video_id: str) -> ReportResponse:
     if video.get("report"):
         # Report already generated — return cached version
         logger.info(f"Returning cached report for video {video_id}")
-        return ReportResponse(video_id=video_id, report=video["report"])
+        return ReportResponse(video_id=video_id, report=public_audit_text(video["report"]))
 
     if video["status"] != "completed":
         raise HTTPException(

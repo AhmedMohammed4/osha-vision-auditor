@@ -118,7 +118,7 @@ def summarize_findings(violations: List[Dict[str, Any]], risk_score: float) -> s
 
     if not violations:
         return f"""1. OVERALL RISK ASSESSMENT
-The automated review scored the sampled frames {risk_score}/100 ({severity}). OpenAI report generation was unavailable, so this summary uses the recorded findings.
+The automated review scored the sampled frames {risk_score}/100 ({severity}). Report generation was unavailable, so this summary uses the recorded findings.
 
 2. TOP SAFETY ISSUES
 • The review recorded no findings in the sampled frames.
@@ -136,7 +136,7 @@ The automated review scored the sampled frames {risk_score}/100 ({severity}). Op
         for vtype, count in top_violations
     )
     return f"""1. OVERALL RISK ASSESSMENT
-The automated review scored the sampled frames {risk_score}/100 ({severity}) and recorded {len(violations)} findings across {len(type_counts)} categories. OpenAI report generation was unavailable, so this summary uses the recorded findings.
+The automated review scored the sampled frames {risk_score}/100 ({severity}) and recorded {len(violations)} findings across {len(type_counts)} categories. Report generation was unavailable, so this summary uses the recorded findings.
 
 2. TOP SAFETY ISSUES
 {issues_text}
