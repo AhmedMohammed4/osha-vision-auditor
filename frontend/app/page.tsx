@@ -14,7 +14,7 @@ const STORY_TABS = [
       heading: "Safety inspections can't cover every shift.",
       body: `OSHA requires PPE compliance across all active construction and industrial sites. In practice, safety officers conduct walkthroughs once per shift at best. Between those checks, violations occur: equipment comes off, hazards go unaddressed, and incidents happen.
 
-1,069 construction workers died in the US last year. Most worked in industries where PPE compliance is inconsistently enforced. The gap between what's required and what's actually monitored is where incidents happen.
+In 2024, 1,034 people died from work injuries in U.S. private-sector construction. OSHA reports that 389 of those deaths resulted from falls to a lower level.
 
 For large operations with multiple crews and active sites, manual inspection doesn't scale.`,
     },
@@ -59,10 +59,28 @@ The current system handles post-shift compliance review. The next version handle
 
 /* ─── Stats ───────────────────────────────────────────────────── */
 const STATS = [
-  { value: 1069, suffix: "", label: "US construction fatalities", sublabel: "Bureau of Labor Statistics, 2023" },
-  { value: 60, suffix: "%", label: "were preventable with PPE", sublabel: "OSHA incident data" },
-  { value: 14, suffix: "+", label: "OSHA violation types detected", sublabel: "Frame analysis" },
-  { value: 170, suffix: "B", label: "annual US injury cost", sublabel: "National Safety Council" },
+  {
+    value: 1034,
+    label: "U.S. private-sector construction fatalities",
+    sublabel: "Bureau of Labor Statistics, 2024",
+    sourceUrl: "https://www.bls.gov/opub/ted/2026/fatal-work-injuries-declined-in-2024.htm",
+  },
+  {
+    value: 38,
+    suffix: "%",
+    label: "of construction fatalities from falls to a lower level",
+    sublabel: "OSHA, 2024 data",
+    sourceUrl: "https://www.osha.gov/stop-falls/",
+  },
+  { value: 14, label: "Hazard categories reviewed", sublabel: "Video frame analysis" },
+  {
+    value: 181.4,
+    prefix: "$",
+    suffix: "B",
+    label: "Estimated U.S. work injury costs",
+    sublabel: "National Safety Council, 2024",
+    sourceUrl: "https://injuryfacts.nsc.org/work/costs/work-injury-costs/",
+  },
 ];
 
 /* ─── How it works ────────────────────────────────────────────── */
@@ -119,7 +137,7 @@ const CATCHES = [
   },
   {
     title: "Weighted risk score",
-    desc: "14+ violation types weighted by severity. Fall hazards score highest. Normalized per video length for fair comparison across sites.",
+    desc: "14 hazard categories weighted by severity. Fall hazards score highest. Normalized per video length for fair comparison across sites.",
     badge: null,
     badgeText: "Score",
   },
@@ -148,15 +166,19 @@ function useCountUp(target: number, active: boolean, duration = 1200) {
   return count;
 }
 
-function StatItem({ value, suffix, label, sublabel, active }: typeof STATS[0] & { active: boolean }) {
+function StatItem({ value, prefix, suffix, label, sublabel, sourceUrl, active }: typeof STATS[0] & { active: boolean }) {
   const count = useCountUp(value, active);
   return (
     <div className="text-center space-y-1.5">
       <div className="text-4xl font-bold text-white tabular-nums" style={{ letterSpacing: "-0.02em" }}>
-        {count.toLocaleString()}{suffix}
+        {prefix}{count.toLocaleString("en-US")}{suffix}
       </div>
       <div className="text-gray-300 text-sm font-medium">{label}</div>
-      <div className="text-gray-500 text-xs">{sublabel}</div>
+      <div className="text-gray-400 text-xs">
+        {sourceUrl ? (
+          <a href={sourceUrl} className="underline underline-offset-2 hover:text-white">{sublabel}</a>
+        ) : sublabel}
+      </div>
     </div>
   );
 }
@@ -306,7 +328,7 @@ export default function LandingPage() {
             <BlurText text="What it detects" delay={0.06} />
           </p>
           <h2 className="text-3xl font-bold text-white mb-12 text-center">
-            <BlurText text="14+ violation types. One risk score. One report." delay={0.07} />
+            <BlurText text="14 hazard categories. One risk score. One report." delay={0.07} />
           </h2>
 
           <div className="grid sm:grid-cols-2 gap-4">
