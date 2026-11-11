@@ -223,10 +223,11 @@ export default function DashboardPage() {
 
               {/* Violation summary */}
               <div className="card space-y-3">
-                <p className="section-label">Violation Breakdown</p>
+                <p className="section-label">Findings by Category</p>
+                <p className="text-gray-400 text-xs">Counts include repeated observations across sampled frames.</p>
                 <div className="space-y-2">
                   {violationTypes.length === 0 ? (
-                    <p className="text-gray-600 text-xs">No violations detected</p>
+                    <p className="text-gray-600 text-xs">No clear hazards identified</p>
                   ) : (
                     violationTypes.map(([type, count]) => {
                       const label = type.split("_").map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");

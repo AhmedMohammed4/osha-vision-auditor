@@ -55,6 +55,15 @@ def generate_report(
     violation_timestamps = sorted(set(v.get("timestamp", 0) for v in violations))[:10]
     timestamps_str = ", ".join(f"{t:.1f}s" for t in violation_timestamps) or "None"
 
+    # Retain the observed evidence so category names cannot become invented details.
+    examples_by_type = {}
+    for finding in violations:
+        examples_by_type.setdefault(finding.get("violation_type", "unknown"), finding)
+    evidence_str = "\n".join(
+        f"- {finding.get('timestamp', 0):.1f}s, {violation_type}: {finding.get('description') or 'No visual description recorded.'}"
+        for violation_type, finding in examples_by_type.items()
+    ) or "- No findings recorded"
+
     severity = _severity_label(risk_score)
 
     prompt = f"""Summarize the following automated worksite video findings for a safety reviewer.
@@ -67,6 +76,13 @@ INSPECTION RESULTS:
 {violation_summary}
 - OSHA Standards Referenced: {citations_str}
 - Violation Timestamps: {timestamps_str}
+- Recorded visual evidence:
+{evidence_str}
+
+Use only the recorded evidence. Counts are observations across sampled frames
+and can repeat the same hazard. Do not call them separate incidents or workers.
+Do not add missing PPE, measurements, hazards, or legal conclusions absent from
+the evidence. Describe findings as potential hazards for a reviewer to verify.
 
 Provide a structured report with EXACTLY these three sections:
 

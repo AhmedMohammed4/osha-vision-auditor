@@ -63,9 +63,9 @@ export default function ViolationsTable({
           </svg>
         </div>
         <div className="text-center">
-          <p className="text-white font-semibold text-sm">No violations detected</p>
+          <p className="text-white font-semibold text-sm">No clear hazards identified</p>
           <p className="text-gray-600 text-xs mt-1">
-            All workers appear to be in compliance with OSHA safety requirements.
+            Review covers visible evidence in the sampled frames.
           </p>
         </div>
       </div>
@@ -75,9 +75,9 @@ export default function ViolationsTable({
   return (
     <div className="card" style={{ background: "#000000", border: "1px solid rgba(255,255,255,0.1)" }}>
       <div className="flex items-center justify-between mb-4">
-        <p className="section-label">Violations Log</p>
+        <p className="section-label">Findings Log</p>
         <span className="text-xs text-gray-600">
-          {violations.length} violation{violations.length !== 1 ? "s" : ""}
+          {violations.length} frame observation{violations.length !== 1 ? "s" : ""}
         </span>
       </div>
 
