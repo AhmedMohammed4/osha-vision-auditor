@@ -75,7 +75,7 @@ export default function ViolationsTable({
   return (
     <div className="card" style={{ background: "#000000", border: "1px solid rgba(255,255,255,0.1)" }}>
       <div className="flex items-center justify-between mb-4">
-        <p className="section-label">Findings Log</p>
+        <p className="section-label">Violations Log</p>
         <span className="text-xs text-gray-600">
           {violations.length} frame observation{violations.length !== 1 ? "s" : ""}
         </span>

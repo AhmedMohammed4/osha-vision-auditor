@@ -170,7 +170,7 @@ def detect_violations(frame: np.ndarray, timestamp: float) -> List[Dict[str, Any
             }
         ],
         text_format=_FrameAnalysis,
-        max_output_tokens=1024,
+        max_output_tokens=4096,
         store=False,
     )
     analysis = response.output_parsed

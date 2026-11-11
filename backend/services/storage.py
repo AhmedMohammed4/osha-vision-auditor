@@ -1,7 +1,7 @@
 """Supabase Storage helpers for video and frame management."""
 
 import logging
-from pathlib import Path
+import mimetypes
 from .supabase_client import get_supabase
 
 logger = logging.getLogger(__name__)
@@ -27,7 +27,7 @@ def upload_video(file_bytes: bytes, filename: str) -> str:
     supabase.storage.from_(VIDEOS_BUCKET).upload(
         path=path,
         file=file_bytes,
-        file_options={"content-type": "video/mp4", "upsert": "true"},
+        file_options={"content-type": mimetypes.guess_type(filename)[0] or "application/octet-stream", "upsert": "true"},
     )
 
     result = supabase.storage.from_(VIDEOS_BUCKET).get_public_url(path)

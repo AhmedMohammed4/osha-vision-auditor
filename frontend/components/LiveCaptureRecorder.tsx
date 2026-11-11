@@ -35,6 +35,9 @@ export default function LiveCaptureRecorder({ onFileReady, onReset, disabled = f
 
   useEffect(() => {
     if (captureState !== "recording") return;
+    if (videoPreviewRef.current) {
+      videoPreviewRef.current.srcObject = activeStreamRef.current;
+    }
     const timerId = setInterval(() => setRecordingSeconds((s) => s + 1), 1000);
     const stopAtLimit = setTimeout(() => {
       const recorder = mediaRecorderRef.current;
@@ -87,9 +90,6 @@ export default function LiveCaptureRecorder({ onFileReady, onReset, disabled = f
       });
 
       activeStreamRef.current = stream;
-      if (videoPreviewRef.current) {
-        videoPreviewRef.current.srcObject = stream;
-      }
 
       chunksRef.current = [];
       const recorder = new MediaRecorder(stream, { mimeType });
