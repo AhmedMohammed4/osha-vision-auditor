@@ -31,11 +31,13 @@ class DetectorEvidenceTests(unittest.TestCase):
             **overrides,
         })
 
-    def analyze(self, workers, violations):
+    def analyze(self, workers, violations, public_traffic_visible=False):
         client = Mock()
         client.responses.parse.return_value = SimpleNamespace(
             status="completed",
-            output_parsed=_FrameAnalysis(workers=workers, violations=violations),
+            output_parsed=_FrameAnalysis(
+                public_traffic_visible=public_traffic_visible, workers=workers, violations=violations,
+            ),
         )
         with patch("worker.detector.get_openai_client", return_value=client):
             return detect_violations(np.zeros((48, 64, 3), dtype=np.uint8), 2.0)
@@ -74,6 +76,19 @@ class DetectorEvidenceTests(unittest.TestCase):
             [self.candidate("improper_footwear", confidence=0.51)],
         )
         self.assertEqual(findings, [])
+
+    def test_confidence_cannot_override_an_admission_of_uncertain_evidence(self):
+        findings = self.analyze([], [self.candidate(
+            "unsafe_ladder", worker_id=None,
+            description="The ladder support conditions are not visibly secured.",
+        )])
+        self.assertEqual(findings, [])
+
+    def test_missing_vest_requires_visible_public_traffic_exposure(self):
+        worker = self.worker(safety_vest="absent")
+        candidate = self.candidate("no_safety_vest")
+        self.assertEqual(self.analyze([worker], [candidate]), [])
+        self.assertEqual(len(self.analyze([worker], [candidate], public_traffic_visible=True)), 1)
 
     def test_visible_absence_alone_does_not_establish_a_requirement(self):
         for category, field in (

@@ -2,6 +2,7 @@
 
 import base64
 import logging
+import re
 from typing import Any, Dict, List, Literal
 
 import cv2
@@ -14,6 +15,10 @@ from .osha_citations import OSHA_CITATIONS, hydrate_citation
 logger = logging.getLogger(__name__)
 
 _MIN_CONFIDENCE = 0.9
+_UNCONFIRMED_EVIDENCE = re.compile(
+    r"\b(?:cannot be (?:confirmed|determined|verified)|not visibly secured|not evident|no visible evidence)\b",
+    re.IGNORECASE,
+)
 _PPE_FIELDS = {
     "no_hard_hat": "hard_hat",
     "no_eye_protection": "eye_protection",
@@ -45,11 +50,16 @@ class _Violation(BaseModel):
 
 
 class _FrameAnalysis(BaseModel):
+    public_traffic_visible: bool
     workers: list[_WorkerPPE]
     violations: list[_Violation]
 
 
 _SYSTEM_PROMPT = """Review one worksite video frame for clearly evidenced safety hazards.
+
+Record public_traffic_visible only for clearly visible public road traffic to
+which workers are exposed. Construction machinery, an excavator bucket, or a
+person climbing a ladder does not establish public vehicular traffic exposure.
 
 First record the PPE visible on each worker, using a unique worker_id. For each
 item use present, absent, or unclear. Absent requires a clear view of the relevant
@@ -176,6 +186,10 @@ def detect_violations(frame: np.ndarray, timestamp: float) -> List[Dict[str, Any
         if violation.violation_type not in OSHA_CITATIONS:
             raise RuntimeError(f"OpenAI returned an unknown finding type for frame {timestamp:.1f}s")
         if violation.confidence < _MIN_CONFIDENCE or not violation.requirement_evident:
+            continue
+        if _UNCONFIRMED_EVIDENCE.search(violation.description):
+            continue
+        if violation.violation_type == "no_safety_vest" and not analysis.public_traffic_visible:
             continue
         ppe_field = _PPE_FIELDS.get(violation.violation_type)
         if ppe_field:

@@ -1,17 +1,27 @@
-"""
-Generate a safety report from the video analysis with OpenAI.
-"""
+"""Build a safety review report directly from the recorded visual findings."""
 
-import logging
-import os
 from collections import Counter
 from typing import Any, Dict, List
 
-from openai import OpenAIError
+from .osha_citations import OSHA_CITATIONS
+from .risk_scorer import VIOLATION_WEIGHTS
 
-from .openai_client import MODEL, get_openai_client
-
-logger = logging.getLogger(__name__)
+_CORRECTIVE_ACTIONS = {
+    "excavation_hazard": "Have a competent person assess trench conditions and select appropriate cave-in protection before entry.",
+    "fall_hazard": "Have a safety reviewer assess the exposed edge or opening and arrange suitable fall protection.",
+    "electrical_hazard": "Keep workers clear of the electrical hazard and arrange inspection by a qualified person.",
+    "fire_hazard": "Have a safety reviewer address the recorded fire hazard and check access to appropriate fire protection.",
+    "no_fall_harness": "Have a safety reviewer verify the fall exposure and select an appropriate fall-protection system.",
+    "no_hard_hat": "Verify the recorded head-injury exposure and provide appropriate head protection.",
+    "unsafe_ladder": "Inspect the recorded ladder defect or misuse and correct the setup before further use.",
+    "scaffold_violation": "Have a competent person inspect the scaffold and correct the recorded protection or access issue.",
+    "no_eye_protection": "Select suitable eye or face protection for the visible task and exposure.",
+    "no_safety_vest": "Verify public-traffic exposure and provide appropriate high-visibility garments where required.",
+    "no_gloves": "Assess the recorded hand exposure and select suitable hand protection for the task.",
+    "improper_footwear": "Assess the recorded foot-injury exposure and select appropriate protective footwear.",
+    "housekeeping_hazard": "Remove or control the recorded obstruction, debris, or trip hazard.",
+    "tool_misuse": "Inspect the recorded tool defect or misuse and correct it before further operation.",
+}
 
 
 def generate_report(
@@ -19,147 +29,65 @@ def generate_report(
     violations: List[Dict[str, Any]],
     risk_score: float,
 ) -> str:
-    """
-    Generate a safety report using OpenAI.
-
-    Sends a structured violation summary and returns a formatted
-    safety report with assessment, issues, and recommendations.
-
-    Args:
-        video_id: UUID of the video (for context in logs).
-        violations: List of violation dicts from the pipeline.
-        risk_score: Computed risk score 0–100.
-
-    Returns:
-        Formatted safety report string.
-    """
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        logger.warning("OPENAI_API_KEY is missing. Using the findings summary.")
-        return summarize_findings(violations, risk_score)
-
-    # Count violations by type for the prompt
-    type_counts = Counter(v.get("violation_type", "unknown") for v in violations)
-    violation_summary = "\n".join(
-        f"- {vtype.replace('_', ' ').title()}: {count} instance(s)"
-        for vtype, count in sorted(type_counts.items(), key=lambda x: -x[1])
-    ) or "- None detected"
-
-    # Collect unique OSHA citations referenced
-    citations = sorted(set(
-        v.get("osha_citation", "") for v in violations if v.get("osha_citation")
-    ))
-    citations_str = ", ".join(citations) if citations else "None"
-
-    # Sample timestamps for context (first 10 unique)
-    violation_timestamps = sorted(set(v.get("timestamp", 0) for v in violations))[:10]
-    timestamps_str = ", ".join(f"{t:.1f}s" for t in violation_timestamps) or "None"
-
-    # Retain the observed evidence so category names cannot become invented details.
-    examples_by_type = {}
-    for finding in violations:
-        examples_by_type.setdefault(finding.get("violation_type", "unknown"), finding)
-    evidence_str = "\n".join(
-        f"- {finding.get('timestamp', 0):.1f}s, {violation_type}: {finding.get('description') or 'No visual description recorded.'}"
-        for violation_type, finding in examples_by_type.items()
-    ) or "- No findings recorded"
-
-    severity = _severity_label(risk_score)
-
-    prompt = f"""Summarize the following automated worksite video findings for a safety reviewer.
-
-INSPECTION RESULTS:
-- Video ID: {video_id}
-- Overall Risk Score: {risk_score}/100 ({severity})
-- Total Violations Detected: {len(violations)}
-- Violation Breakdown:
-{violation_summary}
-- OSHA Standards Referenced: {citations_str}
-- Violation Timestamps: {timestamps_str}
-- Recorded visual evidence:
-{evidence_str}
-
-Use only the recorded evidence. Counts are observations across sampled frames
-and can repeat the same hazard. Do not call them separate incidents or workers.
-Do not add missing PPE, measurements, hazards, or legal conclusions absent from
-the evidence. Describe findings as potential hazards for a reviewer to verify.
-
-Provide a structured report with EXACTLY these three sections:
-
-1. OVERALL RISK ASSESSMENT
-Write 2–3 sentences about the risk score and hazards identified in the sampled frames.
-
-2. TOP SAFETY ISSUES
-List up to 3 of the most critical findings as bullet points. If there are no findings, say so. Do not infer overall compliance from a lack of findings.
-
-3. RECOMMENDED ACTIONS
-List up to 5 concrete follow-up actions based on the findings. Reference the provided OSHA standards where applicable.
-
-Keep the tone professional and concise. Do not include introductory text before section 1."""
-
-    try:
-        response = get_openai_client().responses.create(
-            model=MODEL,
-            input=prompt,
-            max_output_tokens=600,
-            store=False,
-        )
-        report_text = response.output_text.strip()
-        if response.status == "completed" and report_text:
-            logger.info("OpenAI report generated for video %s", video_id)
-            return report_text
-        logger.warning("OpenAI report was incomplete for video %s", video_id)
-    except OpenAIError:
-        logger.exception("OpenAI report request failed for video %s", video_id)
+    """Preserve the pipeline entry point while formatting its accepted evidence."""
     return summarize_findings(violations, risk_score)
 
 
 def _severity_label(score: float) -> str:
-    """Map numeric risk score to a human-readable severity label."""
     if score >= 67:
         return "HIGH RISK"
-    elif score >= 34:
+    if score >= 34:
         return "MODERATE RISK"
-    else:
-        return "LOW RISK"
+    return "LOW RISK"
 
 
 def summarize_findings(violations: List[Dict[str, Any]], risk_score: float) -> str:
-    """
-    Fallback report when OpenAI is unavailable.
-    Produces a deterministic text-based report from violation data.
-    """
+    """Include observed evidence, repeated-frame counts, and matching follow-up actions."""
     severity = _severity_label(risk_score)
-    type_counts = Counter(v.get("violation_type", "unknown") for v in violations)
-
     if not violations:
         return f"""1. OVERALL RISK ASSESSMENT
-The automated review scored the sampled frames {risk_score}/100 ({severity}). Report generation was unavailable, so this summary uses the recorded findings.
+The sampled frames received a review priority of {risk_score}/100 ({severity}). This review covers the visible conditions in sampled frames.
 
 2. TOP SAFETY ISSUES
-• The review recorded no findings in the sampled frames.
+No clear hazards were identified in the sampled frames.
 
 3. RECOMMENDED ACTIONS
-• Continue enforcing mandatory PPE policies at all site entry points per 29 CFR 1926.100.
-• Conduct periodic unannounced inspections to maintain compliance standards.
-• Document this inspection result as part of your ongoing OSHA safety records.
-• Schedule routine OSHA safety refresher training to sustain the compliance culture.
-• Review and update the written PPE program per 29 CFR 1910.132 annually."""
+Have a safety reviewer verify site conditions and any work areas outside the camera view."""
 
-    top_violations = type_counts.most_common(3)
-    issues_text = "\n".join(
-        f"• {vtype.replace('_', ' ').title()}: {count} instance(s) detected"
-        for vtype, count in top_violations
+    type_counts = Counter(finding.get("violation_type", "unknown") for finding in violations)
+    first_by_type = {}
+    for finding in violations:
+        first_by_type.setdefault(finding.get("violation_type", "unknown"), finding)
+    categories = sorted(
+        type_counts,
+        key=lambda category: VIOLATION_WEIGHTS.get(category, VIOLATION_WEIGHTS["default"]),
+        reverse=True,
     )
+
+    issues = []
+    for category in categories[:3]:
+        finding = first_by_type[category]
+        label = category.replace("_", " ").title()
+        evidence = finding.get("description") or "Review the timestamped evidence frame."
+        issues.append(
+            f"- {label} at {finding.get('timestamp', 0):.1f}s. {evidence} "
+            f"Recorded in {type_counts[category]} sampled frame observation(s)."
+        )
+
+    actions = []
+    for category in categories[:5]:
+        action = _CORRECTIVE_ACTIONS.get(category, "Have a safety reviewer inspect the recorded condition.")
+        citation = OSHA_CITATIONS.get(category, {}).get("citation", "site safety requirements")
+        actions.append(f"- {action} Review {citation}.")
+
+    lead_hazard = categories[0].replace("_", " ").lower()
+    issues_text = "\n".join(issues)
+    actions_text = "\n".join(actions)
     return f"""1. OVERALL RISK ASSESSMENT
-The automated review scored the sampled frames {risk_score}/100 ({severity}) and recorded {len(violations)} findings across {len(type_counts)} categories. Report generation was unavailable, so this summary uses the recorded findings.
+The sampled frames received a review priority of {risk_score}/100 ({severity}), led by {lead_hazard}. The most serious observed hazard sets the minimum priority. The review recorded {len(violations)} frame observations across {len(type_counts)} categories. Repeated observations may refer to the same hazard.
 
 2. TOP SAFETY ISSUES
 {issues_text}
 
 3. RECOMMENDED ACTIONS
-• Immediately conduct a site-wide safety briefing addressing all detected violation types before resuming operations.
-• Perform a PPE inventory audit to ensure adequate supply of required protective equipment for all personnel.
-• Appoint a dedicated Safety Officer to perform daily compliance checks at site entry points and during operations.
-• Implement a written safety program per 29 CFR 1910.132 with documented enforcement procedures and disciplinary actions.
-• Schedule quarterly OSHA safety training sessions covering all violation categories identified in this inspection."""
+{actions_text}"""

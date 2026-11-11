@@ -103,6 +103,9 @@ export default function RiskMeter({ score }: RiskMeterProps) {
       >
         {label}
       </div>
+      <p className="text-gray-400 text-xs text-center max-w-60">
+        Priority reflects the most serious observed hazard.
+      </p>
     </div>
   );
 }

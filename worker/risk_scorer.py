@@ -1,8 +1,7 @@
 """
 OSHA risk score calculator.
 
-Produces a normalized 0–100 score based on weighted violation counts
-relative to the total opportunity for violations in the video.
+Produces a 0–100 review priority from hazard severity and observation frequency.
 """
 
 import logging
@@ -48,7 +47,12 @@ def compute_risk_score(violations: List[Dict[str, Any]], total_sampled_frames: i
     Formula:
         max_possible = total_frames × max_weight_per_frame × max_violations_per_frame
         actual       = sum of weights for each detected violation
-        score        = min(100, (actual / max_possible) × 100)
+        frequency    = (actual / max_possible) × 100
+        severity     = highest observed hazard weight × 10
+        score        = min(100, max(frequency, severity))
+
+    The most serious finding sets a minimum priority, even if it appears in
+    only one sampled frame. Additional uneventful frames cannot dilute it.
 
     Args:
         violations: List of violation dicts (each has 'violation_type' key).
@@ -63,15 +67,17 @@ def compute_risk_score(violations: List[Dict[str, Any]], total_sampled_frames: i
     max_possible = (
         total_sampled_frames * _MAX_WEIGHT_PER_FRAME * _MAX_VIOLATIONS_PER_FRAME
     )
-    actual = sum(
+    weights = [
         VIOLATION_WEIGHTS.get(
             v.get("violation_type", ""),
             VIOLATION_WEIGHTS["default"]
         )
         for v in violations
-    )
+    ]
+    actual = sum(weights)
+    severity_floor = max(weights, default=0.0) * 10
 
-    score = min(100.0, round((actual / max_possible) * 100.0, 1))
+    score = min(100.0, round(max(severity_floor, (actual / max_possible) * 100.0), 1))
     logger.info(
         f"Risk score: {score} "
         f"(actual={actual:.1f}, max_possible={max_possible:.1f}, "
