@@ -76,6 +76,72 @@ class AuditApiTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(response.status_code, 400)
         self.database.table.assert_not_called()
 
+    async def test_identical_reuploads_reuse_completed_results_without_storage_or_model_calls(self):
+        with patch("backend.routers.video.upload_video", return_value="https://example.test/video") as storage:
+            first = await self.client.post("/api/upload-video", files={"file": ("clip.mp4", b"same clip")})
+            video_id = first.json()["video_id"]
+            self.query.execute.return_value = SimpleNamespace(data=[{
+                **self.video("completed"), "id": video_id,
+            }])
+            second = await self.client.post("/api/upload-video", files={"file": ("renamed.mp4", b"same clip")})
+        self.assertEqual(second.json(), {"video_id": video_id, "status": "completed"})
+        storage.assert_called_once()
+        self.query.insert.assert_called_once()
+        self.worker.assert_not_called()
+        self.query.eq.assert_any_call("owner_id", "user-id")
+
+    async def test_changed_content_and_different_owners_get_independent_audits(self):
+        with patch("backend.routers.video.upload_video", return_value="https://example.test/video"):
+            first = await self.client.post("/api/upload-video", files={"file": ("clip.mp4", b"first clip")})
+            second = await self.client.post("/api/upload-video", files={"file": ("clip.mp4", b"other clip")})
+            app.dependency_overrides[require_user_id] = lambda: "other-user"
+            third = await self.client.post("/api/upload-video", files={"file": ("clip.mp4", b"first clip")})
+        self.assertEqual(len({response.json()["video_id"] for response in (first, second, third)}), 3)
+
+    async def test_analysis_rule_changes_invalidate_reuse(self):
+        with patch("backend.routers.video.upload_video", return_value="https://example.test/video"):
+            first = await self.client.post("/api/upload-video", files={"file": ("clip.mp4", b"same clip")})
+            with patch("backend.routers.video.AUDIT_VERSION", "new-analysis-rules"):
+                second = await self.client.post("/api/upload-video", files={"file": ("clip.mp4", b"same clip")})
+        self.assertNotEqual(first.json()["video_id"], second.json()["video_id"])
+
+    async def test_simultaneous_upload_insert_conflict_returns_the_existing_audit(self):
+        self.query.execute.side_effect = [
+            SimpleNamespace(data=[]),
+            RuntimeError("duplicate upload ID"),
+            SimpleNamespace(data=[self.video("uploaded")]),
+        ]
+        with patch("backend.routers.video.upload_video", return_value="https://example.test/video"):
+            response = await self.client.post("/api/upload-video", files={"file": ("clip.mp4", b"same clip")})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["status"], "uploaded")
+
+    async def test_cancelled_uploads_get_a_fresh_record_that_can_be_reused(self):
+        self.query.execute.side_effect = [
+            SimpleNamespace(data=[self.video("cancelled")]),
+            SimpleNamespace(data=[]),
+            SimpleNamespace(data=[]),
+        ]
+        with patch("backend.routers.video.upload_video", return_value="https://example.test/video") as storage:
+            response = await self.client.post("/api/upload-video", files={"file": ("clip.mp4", b"same clip")})
+            video_id = response.json()["video_id"]
+            self.query.execute.side_effect = [
+                SimpleNamespace(data=[self.video("cancelled")]),
+                SimpleNamespace(data=[{**self.video("completed"), "id": video_id}]),
+            ]
+            repeated = await self.client.post("/api/upload-video", files={"file": ("clip.mp4", b"same clip")})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["status"], "uploaded")
+        self.assertEqual(repeated.json(), {"video_id": video_id, "status": "completed"})
+        storage.assert_called_once()
+
+    async def test_failed_uploads_can_reuse_their_record_for_retry(self):
+        self.query.execute.return_value = SimpleNamespace(data=[self.video("failed")])
+        with patch("backend.routers.video.upload_video") as storage:
+            response = await self.client.post("/api/upload-video", files={"file": ("clip.mp4", b"same clip")})
+        self.assertEqual(response.json()["status"], "failed")
+        storage.assert_not_called()
+
     async def test_unknown_owned_video_returns_404(self):
         with patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"}):
             response = await self.client.post(f"/api/process-video/{self.video_id}")

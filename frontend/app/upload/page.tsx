@@ -115,6 +115,10 @@ export default function UploadPage() {
         const uploaded = await uploadVideo(selectedFile, session.access_token);
         currentId = uploaded.video_id;
         setVideoId(currentId);
+        if (uploaded.status === "completed") {
+          router.push(`/dashboard/${currentId}`);
+          return;
+        }
       }
       setPageState("starting");
       await startProcessing(currentId, session.access_token);

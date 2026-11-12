@@ -22,6 +22,9 @@ from .risk_scorer import compute_risk_score
 
 logger = logging.getLogger(__name__)
 
+# Increment when detection or scoring rules change to invalidate upload reuse.
+AUDIT_VERSION = "2026-11-11-evidence-v3"
+
 _MAX_WORKERS = 8
 _SAMPLE_EVERY_SECONDS = 2.0
 _TOO_LONG = f"Choose a clip no longer than {MAX_VIDEO_SECONDS // 60} minutes."

@@ -2,6 +2,7 @@
 FastAPI router for video upload, processing, and retrieval endpoints.
 """
 
+import hashlib
 import logging
 import os
 import uuid
@@ -10,7 +11,8 @@ from typing import List
 from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile
 from supabase import Client
 
-from worker.pipeline import process_video
+from worker.openai_client import MODEL
+from worker.pipeline import AUDIT_VERSION, process_video
 
 from ..models.schemas import UploadResponse, ProcessResponse, SavedDemo, Video, Violation, VideoStatus
 from ..services.audit_copy import public_audit_text
@@ -64,8 +66,16 @@ def upload_video_endpoint(
     if len(file_bytes) == 0:
         raise HTTPException(status_code=400, detail="Uploaded file is empty.")
 
-    # Generate a unique filename to prevent collisions
-    video_id = str(uuid.uuid4())
+    # Identical bytes reuse the same audit for this owner and analysis version.
+    digest = hashlib.sha256(file_bytes).hexdigest()
+    video_id = str(uuid.uuid5(uuid.NAMESPACE_URL, f"osha-vision:{AUDIT_VERSION}:{MODEL}:{owner_id}:{digest}"))
+    supabase = get_supabase()
+    existing = _find_owned_video(supabase, video_id, owner_id)
+    while existing and existing["status"] == VideoStatus.cancelled.value:
+        video_id = str(uuid.uuid5(uuid.UUID(video_id), "retry-after-cancellation"))
+        existing = _find_owned_video(supabase, video_id, owner_id)
+    if existing:
+        return UploadResponse(video_id=video_id, status=VideoStatus(existing["status"]))
     storage_filename = f"{video_id}.{ext}"
 
     logger.info(f"Uploading video: {original_name} → {storage_filename} ({len(file_bytes)} bytes)")
@@ -78,7 +88,6 @@ def upload_video_endpoint(
         raise HTTPException(status_code=500, detail=f"Storage upload failed: {str(exc)}")
 
     # Insert video record into DB
-    supabase = get_supabase()
     try:
         supabase.table("videos").insert(
             {
@@ -90,6 +99,10 @@ def upload_video_endpoint(
             }
         ).execute()
     except Exception as exc:
+        # Another request may have inserted this upload while storage was writing.
+        existing = _find_owned_video(supabase, video_id, owner_id)
+        if existing and existing["status"] != VideoStatus.cancelled.value:
+            return UploadResponse(video_id=video_id, status=VideoStatus(existing["status"]))
         logger.error(f"DB insert failed: {exc}")
         raise HTTPException(status_code=500, detail=f"Database insert failed: {str(exc)}")
 
@@ -168,14 +181,19 @@ def cancel_video(video_id: uuid.UUID, owner_id: str = Depends(require_user_id)) 
     return ProcessResponse(video_id=video_id, message="Audit cancelled.")
 
 
-def _owned_video(supabase: Client, video_id: str, owner_id: str) -> dict:
+def _find_owned_video(supabase: Client, video_id: str, owner_id: str) -> dict | None:
     result = (
         supabase.table("videos").select("*")
         .eq("id", video_id).eq("owner_id", owner_id).limit(1).execute()
     )
-    if not result.data:
+    return result.data[0] if result.data else None
+
+
+def _owned_video(supabase: Client, video_id: str, owner_id: str) -> dict:
+    video = _find_owned_video(supabase, video_id, owner_id)
+    if video is None:
         raise HTTPException(404, "Audit not found.")
-    return result.data[0]
+    return video
 
 
 @router.get("/demo", response_model=SavedDemo, dependencies=[Depends(require_user_id)])
