@@ -35,14 +35,17 @@ def upload_video_endpoint(
     owner_id: str = Depends(require_user_id),
 ) -> UploadResponse:
     """
-    Accept a video upload, store it in Supabase Storage, and create a DB record.
+    Accept a video upload or reuse its existing audit for the signed-in owner.
+
+    Identical file contents reuse the same audit under the current analysis
+    rules and model. Completed results are returned without new analysis.
 
     Validates:
         - File extension must be in ALLOWED_EXTENSIONS.
         - File size must be ≤ 100 MB.
 
     Returns:
-        UploadResponse with video_id and initial status.
+        UploadResponse with video_id and current status.
     """
     # Validate extension
     original_name = file.filename or "video.mp4"
